@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CanchaMaster Cloud Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .img-preview-admin { width: 70px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
+        .code-badge { background: #0f172a; color: #38bdf8; font-family: monospace; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
+        .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Conectando a Web-Cancha Cloud...</p>
+    </div>
+
+    <nav class="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-40 glass">
+        <span class="font-black text-xl italic uppercase cursor-pointer" onclick="location.reload()">Cancha<span class="text-emerald-600">Master</span></span>
+        <div id="navActions" class="flex gap-2">
+            <button onclick="showModal('loginModal')" class="bg-slate-800 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase">Entrar</button>
+        </div>
+        <div id="navUserZone" class="hidden flex items-center gap-4">
+            <span id="userNameDisplay" class="text-[10px] font-black uppercase text-slate-500"></span>
+            <button onclick="location.reload()" class="text-red-500 font-black text-xs uppercase">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <section id="landingPage" class="flex flex-col items-center justify-center h-[80vh] text-center p-6">
+        <h1 class="text-6xl md:text-8xl font-black italic uppercase mb-4 text-slate-900">WEB-<span class="text-emerald-600">CANCHA</span></h1>
+        <p class="text-slate-500 font-bold mb-8 uppercase text-sm tracking-widest">Tus reservas seguras en Firebase Cloud</p>
+        <button onclick="showModal('loginModal')" class="bg-emerald-600 text-white px-12 py-5 rounded-[2rem] font-black uppercase shadow-2xl hover:scale-105 transition-all">Iniciar Ahora</button>
+    </section>
+
+    <main id="app" class="p-6 max-w-7xl mx-auto hidden">
+        <div class="flex flex-col md:row justify-between items-center mb-10 gap-4">
+            <h2 class="text-4xl font-black italic uppercase text-slate-800">Panel de Control</h2>
+            <button id="btnNewRes" onclick="showModal('modalRes')" class="hidden bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Reservar Cancha</button>
+        </div>
+
+        <div id="adminPanel" class="hidden space-y-6">
+            <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                        <tr><th class="p-6">Reserva</th><th class="p-6">Equipo</th><th class="p-6">Implementos</th><th class="p-6">Evidencia</th><th class="p-6">Acción</th></tr>
+                    </thead>
+                    <tbody id="adminTableBody" class="text-xs font-bold divide-y text-slate-600"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="userPanel" class="hidden grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+
+    <div id="modalReg" class="fixed inset-0 bg-slate-900/95 hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] max-w-md w-full p-10 shadow-2xl">
+            <h3 class="text-3xl font-black mb-6 uppercase italic text-center">Nuevo <span class="text-emerald-600">Equipo</span></h3>
+            <div class="space-y-4">
+                <input type="text" id="reg_name" placeholder="Nombre de Equipo" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <input type="password" id="reg_pass" placeholder="Contraseña para entrar" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <input type="text" id="reg_rep" placeholder="Nombre Representante" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <input type="text" id="reg_phone" placeholder="WhatsApp (Ej: 50688888888)" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <input type="number" id="reg_edad" placeholder="Edad Promedio Equipo" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <button id="btnDoRegister" onclick="handleRegister()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase shadow-lg hover:bg-emerald-700">Crear Cuenta</button>
+                <button onclick="closeModal('modalReg')" class="w-full text-slate-400 font-black text-[10px] uppercase mt-4">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/95 hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-10 rounded-[3rem] w-full max-w-md shadow-2xl">
+            <h2 class="text-3xl font-black mb-8 italic uppercase text-center">Acceso</h2>
+            <input type="text" id="loginUser" placeholder="Equipo o Admin" class="w-full p-4 border rounded-2xl mb-4 font-bold bg-slate-50 outline-none">
+            <input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-4 border rounded-2xl mb-8 font-bold bg-slate-50 outline-none">
+            <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase shadow-lg">Entrar</button>
+            <button onclick="showRegister()" class="w-full mt-6 text-emerald-600 font-black text-[10px] uppercase tracking-widest text-center block">¿Eres nuevo? Regístrate aquí</button>
+        </div>
+    </div>
+
+    <div id="modalRes" class="fixed inset-0 bg-slate-900/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div class="grid lg:grid-cols-2 gap-10">
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-black uppercase italic">Detalles de Reserva</h3>
+                    <div class="space-y-4 font-bold text-xs">
+                        <input type="date" id="res_fecha" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="time" id="res_hora_in" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
+                            <input type="time" id="res_hora_out" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
+                        </div>
+                        <input type="number" id="res_players" placeholder="Cant. Jugadores" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
+                        <div class="bg-slate-50 p-6 rounded-[2rem] border space-y-2">
+                            <p class="text-[10px] font-black uppercase text-slate-400 text-center">Alquiler de Extras</p>
+                            <div class="flex justify-between"><span>Conos (₡200)</span><input type="number" id="rent_conos" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
+                            <div class="flex justify-between"><span>Chalecos (₡3000)</span><input type="number" id="rent_chalecos" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
+                            <div class="flex justify-between"><span>Balones (₡1000)</span><input type="number" id="rent_balones" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-900 rounded-[3rem] p-8 text-white flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <label class="block border-2 border-dashed border-slate-700 p-4 rounded-2xl text-center cursor-pointer hover:bg-slate-800">
+                            <span id="lbl_pago" class="block text-[10px] font-black">SUBIR COMPROBANTE PAGO</span>
+                            <input type="file" id="res_file_pago" accept="image/*" class="hidden" onchange="handleFile(this, 'pago')">
+                        </label>
+                        <label class="block border-2 border-dashed border-slate-700 p-4 rounded-2xl text-center cursor-pointer hover:bg-slate-800">
+                            <span id="lbl_cedula" class="block text-[10px] font-black">SUBIR FOTO CÉDULA</span>
+                            <input type="file" id="res_file_cedula" accept="image/*" class="hidden" onchange="handleFile(this, 'cedula')">
+                        </label>
+                        <div class="text-center">
+                            <h2 id="res_total_val" class="text-5xl font-black text-emerald-400 italic">₡0</h2>
+                            <p class="text-[9px] text-slate-500 uppercase">SINPE: 7228-4602</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button onclick="closeModal('modalRes')" class="flex-1 bg-slate-800 py-4 rounded-xl text-xs font-black uppercase">Cerrar</button>
+                        <button id="btnSubmitRes" onclick="submitReserva()" class="flex-1 bg-emerald-500 text-slate-900 py-4 rounded-xl text-xs font-black uppercase">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBs8BO3_CRGa7MI3B6Z-Uslo273M1FQ6u0",
+            authDomain: "web-cancha.firebaseapp.com",
+            projectId: "web-cancha",
+            storageBucket: "web-cancha.firebasestorage.app",
+            messagingSenderId: "395535523926",
+            appId: "1:395535523926:web:64da8d94dadcb08981dbf7"
+        };
+
+        const fApp = initializeApp(firebaseConfig);
+        const auth = getAuth(fApp);
+        const db = getFirestore(fApp);
+
+        let currentUser = null;
+        let teams = [];
+        let reserves = [];
+        let imgP = null, imgC = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) await signInAnonymously(auth);
+            onSnapshot(collection(db, "teams"), (s) => { teams = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
+            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); document.getElementById('loadingOverlay').remove(); });
+        });
+
+        window.handleRegister = async () => {
+            const name = document.getElementById('reg_name').value.trim();
+            const pass = document.getElementById('reg_pass').value.trim();
+            if(!name || !pass) return alert("Nombre y clave obligatorios");
+            document.getElementById('btnDoRegister').innerText = "REGISTRANDO...";
+            try {
+                await addDoc(collection(db, "teams"), {
+                    teamName: name, password: pass,
+                    representative: document.getElementById('reg_rep').value,
+                    phone: document.getElementById('reg_phone').value,
+                    avgAge: parseInt(document.getElementById('reg_edad').value || 0)
+                });
+                alert("¡Cuenta creada!"); closeModal('modalReg'); showModal('loginModal');
+            } catch(e) { alert("Error: " + e.message); }
+            document.getElementById('btnDoRegister').innerText = "Crear Cuenta";
+        };
+
+        window.handleLogin = () => {
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+            if(u === 'admin' && p === 'Admin2026*') currentUser = {id:'admin', teamName:'ADMIN', role:'admin'};
+            else {
+                const f = teams.find(t => t.teamName.toLowerCase() === u.toLowerCase() && t.password === p);
+                if(f) currentUser = {...f, role:'user'};
+                else return alert("Error de acceso");
+            }
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('userNameDisplay').innerText = currentUser.teamName;
+            document.getElementById('navActions').classList.add('hidden');
+            document.getElementById('navUserZone').classList.remove('hidden');
+            if(currentUser.role==='user') document.getElementById('btnNewRes').classList.remove('hidden');
+            closeModal('loginModal');
+            render();
+        };
+
+        window.handleFile = (input, type) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 400; canvas.height = img.height * (400/img.width);
+                    canvas.getContext('2d').drawImage(img, 0,0, canvas.width, canvas.height);
+                    if(type==='pago') { imgP = canvas.toDataURL('image/jpeg', 0.6); document.getElementById('lbl_pago').innerText="✅ PAGO LISTO"; }
+                    else { imgC = canvas.toDataURL('image/jpeg', 0.6); document.getElementById('lbl_cedula').innerText="✅ CÉDULA LISTA"; }
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        };
+
+        window.updateTotal = () => {
+            const h1 = document.getElementById('res_hora_in').value;
+            const h2 = document.getElementById('res_hora_out').value;
+            if(!h1 || !h2) return 0;
+            let h = (new Date(`2024-01-01 ${h2}`) - new Date(`2024-01-01 ${h1}`)) / 3600000;
+            h = h > 0 ? h : 1;
+            let total = ( (currentUser.avgAge < 13 ? 5000 : 10000) * h) + (document.getElementById('rent_conos').value * 200) + (document.getElementById('rent_chalecos').value * 3000) + (document.getElementById('rent_balones').value * 1000);
+            document.getElementById('res_total_val').innerText = `₡${Math.ceil(total).toLocaleString()}`;
+            return Math.ceil(total);
+        };
+
+        window.submitReserva = async () => {
+            if(!imgP || !imgC) return alert("Faltan fotos de comprobante y cédula");
+            document.getElementById('btnSubmitRes').disabled = true;
+            await addDoc(collection(db, "reservations"), {
+                code: "CM-"+Math.floor(1000+Math.random()*9000),
+                teamId: currentUser.id, teamName: currentUser.teamName, phone: currentUser.phone || 'S/N',
+                date: document.getElementById('res_fecha').value, hour: document.getElementById('res_hora_in').value,
+                amount: updateTotal(), status: 'Pendiente', imgPago: imgP, imgCedula: imgC,
+                implementos: { cones: document.getElementById('rent_conos').value, vests: document.getElementById('rent_chalecos').value, balls: document.getElementById('rent_balones').value },
+                timestamp: new Date().toISOString()
+            });
+            alert("Reserva enviada"); closeModal('modalRes');
+            document.getElementById('btnSubmitRes').disabled = false;
+        };
+
+        function render() {
+            if(!currentUser) return;
+            if(currentUser.role === 'admin') {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('adminTableBody').innerHTML = reserves.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(r => `
+                    <tr class="border-b">
+                        <td class="p-6"><span class="code-badge">${r.code}</span><br>${r.date}</td>
+                        <td class="p-6 uppercase">${r.teamName}<br><span class="text-emerald-600">${r.phone}</span></td>
+                        <td class="p-6">₡${r.amount.toLocaleString()}</td>
+                        <td class="p-6 flex gap-1">
+                            <img src="${r.imgPago}" class="img-preview-admin" onclick="window.open(this.src)">
+                            <img src="${r.imgCedula}" class="img-preview-admin" onclick="window.open(this.src)">
+                        </td>
+                        <td class="p-6 space-y-1">
+                            <button onclick="window.upd('${r.id}','${r.status}')" class="w-full p-2 rounded-lg text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</button>
+                            <button onclick="window.del('${r.id}')" class="w-full bg-red-50 text-red-500 p-2 rounded-lg text-[9px]">ELIMINAR</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('userPanel').classList.remove('hidden');
+                document.getElementById('userPanel').innerHTML = reserves.filter(r => r.teamId === currentUser.id).map(r => `
+                    <div class="bg-white p-6 rounded-[2rem] border relative shadow-sm">
+                        <span class="code-badge absolute top-4 right-4">${r.code}</span>
+                        <p class="text-[10px] font-black text-emerald-600">${r.date} @ ${r.hour}</p>
+                        <h4 class="text-xl font-black italic uppercase">${r.teamName}</h4>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-xs font-bold">₡${r.amount.toLocaleString()}</span>
+                            <div class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        window.upd = async (id, s) => await updateDoc(doc(db,"reservations",id), {status: s==='Pagado'?'Pendiente':'Pagado'});
+        window.del = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db,"reservations",id)); };
+        window.showModal = (id) => document.getElementById(id).classList.remove('hidden');
+        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+        window.showRegister = () => { closeModal('loginModal'); showModal('modalReg'); };
+    </script>
+</body>
+</html>
