@@ -3,892 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CanchaMaster Cloud Pro V13</title>
+    <title>CanchaMaster Cloud V14 - Elite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
-    <!-- Librerías para Exportar a PDF -->
+    <!-- PDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
-        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; }
+        body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
         .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .img-preview-admin { width: 70px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; }
-        .code-badge { background: #0f172a; color: #38bdf8; font-family: monospace; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
+        .img-preview-admin { width: 80px; height: 50px; object-fit: cover; border-radius: 8px; border: 2px solid #e2e8f0; cursor: zoom-in; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
         .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .chat-scroll::-webkit-scrollbar { width: 6px; }
-        .chat-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .bg-video { position: fixed; top: 0; left: 0; min-width: 100%; min-height: 100%; z-index: -2; object-fit: cover; opacity: 0.4; }
+        .overlay-dark { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: linear-gradient(to bottom, rgba(15,23,42,0.8), rgba(15,23,42,0.95)); }
+        .calendar-card { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(5px); color: white; border-radius: 20px; padding: 15px; }
+        .reserved-slot { text-decoration: line-through; color: #ef4444; opacity: 0.6; }
     </style>
 </head>
 <body>
 
+    <!-- Overlay de carga -->
     <div id="loadingOverlay" class="fixed inset-0 bg-white z-[200] flex flex-col items-center justify-center">
         <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mb-4"></div>
-        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Conectando a Web-Cancha Cloud...</p>
+        <p class="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">Cargando Sistema V14 Elite...</p>
     </div>
 
-    <nav class="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-40 glass">
-        <span class="font-black text-xl italic uppercase cursor-pointer" onclick="location.reload()">Cancha<span class="text-emerald-600">Master</span></span>
+    <!-- Video de fondo y gradiente -->
+    <video autoplay muted loop id="mainBgVideo" class="bg-video hidden">
+        <source id="bgVideoSource" src="" type="video/mp4">
+    </video>
+    <div id="mainBgImage" class="fixed inset-0 bg-slate-900 -z-20 bg-cover bg-center transition-all duration-1000 opacity-40"></div>
+    <div class="overlay-dark"></div>
+
+    <nav class="bg-white/80 border-b p-4 flex justify-between items-center sticky top-0 z-40 backdrop-blur-md">
+        <span class="font-black text-xl italic uppercase cursor-pointer text-slate-900" onclick="location.reload()">Cancha<span class="text-emerald-600">Master</span> <span class="text-[9px] bg-slate-900 text-white px-2 py-1 rounded ml-1">V14</span></span>
         <div id="navActions" class="flex gap-2">
-            <button onclick="showModal('loginModal')" class="bg-slate-800 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase">Entrar</button>
+            <button onclick="showModal('loginModal')" class="bg-slate-900 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase">Ingresar</button>
         </div>
         <div id="navUserZone" class="hidden flex items-center gap-4">
-            <span id="userNameDisplay" class="text-[10px] font-black uppercase text-slate-500"></span>
-            <button onclick="location.reload()" class="text-red-500 font-black text-xs uppercase">Cerrar Sesión</button>
+            <div class="text-right">
+                <span id="userNameDisplay" class="block text-[10px] font-black uppercase text-slate-900"></span>
+                <span id="userRepDisplay" class="block text-[9px] font-bold text-emerald-600 uppercase"></span>
+            </div>
+            <button onclick="location.reload()" class="bg-red-50 text-red-500 p-2 rounded-lg"><i class="fas fa-power-off"></i></button>
         </div>
     </nav>
 
-    <section id="landingPage" class="flex flex-col items-center justify-center h-[80vh] text-center p-6">
-        <div class="absolute inset-0 bg-slate-900 -z-10" id="landingBackgrounds">
-            <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000" class="carousel-img active w-full h-full object-cover opacity-30">
+    <!-- PANTALLA DE INICIO INTERACTIVA -->
+    <section id="landingPage" class="relative z-10 flex flex-col items-center justify-center min-h-[90vh] p-6">
+        <div class="max-w-6xl w-full grid lg:grid-cols-2 gap-12 items-center">
+            <div class="text-center lg:text-left">
+                <h1 class="text-6xl md:text-8xl font-black italic uppercase mb-4 text-white drop-shadow-2xl leading-none">RESERVA<br><span class="text-emerald-500">CANCHA</span></h1>
+                <p class="text-slate-300 font-bold mb-8 uppercase text-sm tracking-widest">Sistema de Gestión de Alquiler de Canchas y Suministros</p>
+                <button onclick="showModal('loginModal')" class="bg-emerald-600 text-white px-12 py-5 rounded-[2rem] font-black uppercase shadow-2xl hover:scale-105 transition-all">Empezar Reserva</button>
+            </div>
+            
+            <!-- MENÚ INTERACTIVO DE RESERVAS -->
+            <div class="calendar-card">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black uppercase italic text-emerald-400">Estado de Hoy</h3>
+                    <span id="currentLocalDate" class="text-[10px] font-bold opacity-70"></span>
+                </div>
+                <div id="homeSchedule" class="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                    <!-- Dinámico -->
+                </div>
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <p class="text-[9px] font-black uppercase text-slate-400 mb-2">Próximos días bloqueados</p>
+                    <div id="blockedDays" class="flex flex-wrap gap-2"></div>
+                </div>
+            </div>
         </div>
-        <h1 class="text-6xl md:text-8xl font-black italic uppercase mb-4 text-white drop-shadow-2xl">WEB-<span class="text-emerald-500">CANCHA</span></h1>
-        <p class="text-slate-300 font-bold mb-8 uppercase text-sm tracking-widest drop-shadow-md">Tus reservas seguras en Firebase Cloud</p>
-        <button onclick="showModal('loginModal')" class="bg-emerald-600 text-white px-12 py-5 rounded-[2rem] font-black uppercase shadow-2xl hover:scale-105 transition-all">Iniciar Ahora</button>
     </section>
 
-    <main id="app" class="p-6 max-w-7xl mx-auto hidden">
-        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h2 class="text-4xl font-black italic uppercase text-slate-800">Panel de Control</h2>
+    <main id="app" class="p-6 max-w-7xl mx-auto hidden relative z-20">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-white p-8 rounded-[2.5rem] shadow-xl border">
+            <div>
+                <h2 class="text-4xl font-black italic uppercase text-slate-800">Panel Central</h2>
+                <p id="welcomeRep" class="text-emerald-600 font-bold text-xs uppercase"></p>
+            </div>
             <div class="flex gap-2">
-                <button id="btnChatAdmin" onclick="openAdminChat()" class="hidden bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Chat Mensajes</button>
-                <button id="btnNewRes" onclick="showModal('modalRes')" class="hidden bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Reservar Cancha</button>
+                <button id="btnNewRes" onclick="showModal('modalRes')" class="hidden bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Nueva Reserva</button>
             </div>
         </div>
 
-        <div id="adminTabs" class="hidden flex gap-4 border-b border-slate-200 mb-6 overflow-x-auto whitespace-nowrap">
-            <button onclick="switchTab('adminPanel')" id="tab_adminPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600">Reservas</button>
-            <button onclick="switchTab('equiposPanel')" id="tab_equiposPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Equipos</button>
-            <button onclick="switchTab('finanzasPanel')" id="tab_finanzasPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Finanzas</button>
-            <button onclick="switchTab('tiendaPanel')" id="tab_tiendaPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Mantenimiento y Tienda</button>
-            <button onclick="switchTab('multimediaPanel')" id="tab_multimediaPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Multimedia</button>
-            <button onclick="switchTab('configPanel')" id="tab_configPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Configuración</button>
+        <!-- TABS ADMIN -->
+        <div id="adminTabs" class="hidden flex gap-4 border-b border-slate-200 mb-6 overflow-x-auto whitespace-nowrap bg-white/50 p-2 rounded-t-3xl">
+            <button onclick="switchTab('adminPanel')" id="tab_adminPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600">Reservas</button>
+            <button onclick="switchTab('equiposPanel')" id="tab_equiposPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Equipos</button>
+            <button onclick="switchTab('finanzasPanel')" id="tab_finanzasPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Finanzas</button>
+            <button onclick="switchTab('tiendaPanel')" id="tab_tiendaPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Mantenimiento</button>
+            <button onclick="switchTab('multimediaPanel')" id="tab_multimediaPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Multimedia</button>
+            <button onclick="switchTab('configPanel')" id="tab_configPanel" class="px-6 py-3 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Configuración</button>
         </div>
 
-        <!-- PANEL ADMIN: RESERVAS -->
+        <!-- TAB: RESERVAS -->
         <div id="adminPanel" class="hidden space-y-6">
             <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
-                        <tr><th class="p-6">Reserva</th><th class="p-6">Equipo</th><th class="p-6">Implementos</th><th class="p-6">Evidencia</th><th class="p-6">Acción</th></tr>
+                        <tr><th class="p-6">Reserva</th><th class="p-6">Equipo</th><th class="p-6">Implementos Alquilados</th><th class="p-6">Evidencia HD</th><th class="p-6">Acción</th></tr>
                     </thead>
                     <tbody id="adminTableBody" class="text-xs font-bold divide-y text-slate-600"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- PANEL ADMIN: EQUIPOS -->
+        <!-- TAB: EQUIPOS -->
         <div id="equiposPanel" class="hidden space-y-6">
             <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
-                        <tr><th class="p-6">Nombre Equipo</th><th class="p-6">Representante</th><th class="p-6">Contacto</th><th class="p-6">Acciones Adicionales</th></tr>
+                        <tr><th class="p-6">Equipo</th><th class="p-6">Representante</th><th class="p-6">Contacto</th><th class="p-6">Gestión</th></tr>
                     </thead>
                     <tbody id="equiposTableBody" class="text-xs font-bold divide-y text-slate-600"></tbody>
                 </table>
             </div>
         </div>
 
-        <!-- PANEL ADMIN: FINANZAS -->
+        <!-- TAB: FINANZAS -->
         <div id="finanzasPanel" class="hidden space-y-6">
-            <div class="grid md:grid-cols-3 gap-6">
+            <div class="grid md:grid-cols-4 gap-6">
                 <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Ingresos por Cancha (Mes)</p>
-                    <h3 id="fin_cancha" class="text-4xl font-black text-emerald-600">₡0</h3>
+                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Ingresos Mes</p>
+                    <h3 id="fin_total_ingresos" class="text-3xl font-black text-emerald-600">₡0</h3>
                 </div>
                 <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Ingresos Implementos (Mes)</p>
-                    <h3 id="fin_impl" class="text-4xl font-black text-blue-600">₡0</h3>
+                    <div class="flex justify-between">
+                        <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Inversión/Gasto</p>
+                        <button onclick="editInversion()" class="text-blue-500 text-[10px] font-black">EDITAR</button>
+                    </div>
+                    <h3 id="fin_inversion" class="text-3xl font-black text-red-500">₡0</h3>
                 </div>
-                <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white">
-                    <p class="text-[10px] font-black uppercase text-emerald-400 mb-2">Total General (Mes)</p>
-                    <h3 id="fin_total" class="text-4xl font-black">₡0</h3>
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white col-span-2">
+                    <p class="text-[10px] font-black uppercase text-emerald-400 mb-2">Balance Real (Caja)</p>
+                    <h3 id="fin_balance" class="text-4xl font-black">₡0</h3>
                 </div>
             </div>
-            <div class="flex gap-4">
-                <button onclick="exportarReservasPDF()" class="bg-red-600 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf"></i> Exportar Reservas</button>
-                <button onclick="exportarIngresosPDF()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf"></i> Exportar Ingresos</button>
+            <div class="bg-white p-8 rounded-[2.5rem] border">
+                <h4 class="font-black uppercase italic mb-4">Reportes Maestros</h4>
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="exportarIngresosPDF()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf mr-2"></i> Reporte Ingresos PDF</button>
+                    <button onclick="exportarReservasPDF()" class="bg-slate-800 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf mr-2"></i> Reporte Reservas PDF</button>
+                </div>
             </div>
         </div>
 
-        <!-- PANEL ADMIN: TIENDA Y MANTENIMIENTO -->
+        <!-- TAB: MANTENIMIENTO -->
         <div id="tiendaPanel" class="hidden grid md:grid-cols-2 gap-8">
-            <!-- Mantenimiento -->
             <div class="bg-white rounded-[2.5rem] border p-8">
-                <h3 class="text-2xl font-black italic uppercase mb-6 text-amber-600">Necesidades Cancha</h3>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-black italic uppercase text-amber-600">Necesidades</h3>
+                    <button onclick="exportPDFMantenimiento('needs')" class="bg-amber-100 text-amber-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Exportar PDF</button>
+                </div>
                 <div class="flex gap-2 mb-6">
-                    <input type="text" id="need_desc" placeholder="Descripción (Ej: Malla nueva)" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
-                    <input type="number" id="need_cost" placeholder="Costo" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <input type="text" id="need_desc" placeholder="Gasto/Necesidad" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold">
+                    <input type="number" id="need_cost" placeholder="Costo" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold">
                     <button onclick="addNeed()" class="bg-amber-500 text-white px-4 rounded-xl font-black"><i class="fas fa-plus"></i></button>
                 </div>
                 <div id="needsList" class="space-y-3"></div>
             </div>
-            <!-- Tienda -->
             <div class="bg-white rounded-[2.5rem] border p-8">
-                <h3 class="text-2xl font-black italic uppercase mb-6 text-emerald-600">Inventario / Ventas</h3>
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-black italic uppercase text-emerald-600">Tienda / Productos</h3>
+                    <button onclick="exportPDFMantenimiento('store')" class="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase">Exportar PDF</button>
+                </div>
                 <div class="flex gap-2 mb-6">
-                    <input type="text" id="prod_desc" placeholder="Producto (Ej: Gatorade)" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
-                    <input type="number" id="prod_price" placeholder="Precio" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <input type="text" id="prod_desc" placeholder="Producto" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold">
+                    <input type="number" id="prod_price" placeholder="Precio" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold">
                     <button onclick="addProduct()" class="bg-emerald-500 text-white px-4 rounded-xl font-black"><i class="fas fa-plus"></i></button>
                 </div>
                 <div id="productsList" class="space-y-3"></div>
             </div>
         </div>
 
-        <!-- PANEL ADMIN: MULTIMEDIA -->
+        <!-- TAB: MULTIMEDIA -->
         <div id="multimediaPanel" class="hidden space-y-6">
-            <div class="bg-white rounded-[2.5rem] border p-8 max-w-xl">
-                <h3 class="text-2xl font-black mb-4 uppercase italic">Fondos de Pantalla</h3>
-                <p class="text-xs text-slate-500 mb-6 font-bold">Agrega imágenes para personalizar la pantalla de inicio de los equipos.</p>
-                <label class="block border-2 border-dashed border-emerald-500 p-8 rounded-3xl text-center cursor-pointer hover:bg-emerald-50 transition mb-6">
-                    <i class="fas fa-image text-emerald-500 text-3xl mb-2"></i>
-                    <span class="block text-xs font-black uppercase text-emerald-600">Subir Nueva Imagen</span>
-                    <input type="file" accept="image/*" class="hidden" onchange="uploadBackground(this)">
-                </label>
-                <div id="bgList" class="grid grid-cols-2 gap-4"></div>
-            </div>
-        </div>
-
-        <!-- PANEL ADMIN: CONFIGURACIÓN -->
-        <div id="configPanel" class="hidden space-y-6">
-            <div class="bg-white rounded-[2.5rem] border shadow-sm p-8 max-w-lg">
-                <h3 class="text-2xl font-black mb-6 uppercase italic">Configuración Global</h3>
-                <div class="space-y-6">
-                    <div>
-                        <label class="text-xs font-black text-slate-400 uppercase">Número SINPE Oficial</label>
-                        <input type="text" id="config_sinpe" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none mt-2">
-                    </div>
-                    <div class="pt-4 border-t">
-                        <label class="text-xs font-black text-slate-400 uppercase">Cambiar Contraseña Administrador</label>
-                        <input type="password" id="config_adminpass" placeholder="Nueva Contraseña Admin" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none mt-2">
-                    </div>
-                    <button onclick="saveConfig()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Guardar Configuración</button>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white rounded-[2.5rem] border p-8">
+                    <h3 class="text-xl font-black mb-4 uppercase italic">Fondos de Imagen</h3>
+                    <input type="file" accept="image/*" class="mb-4 text-xs" onchange="uploadMultimedia(this, 'img')">
+                    <div id="bgImgList" class="grid grid-cols-2 gap-3"></div>
                 </div>
-            </div>
-        </div>
-
-        <!-- PANEL USUARIO (EQUIPOS) -->
-        <div id="userPanel" class="hidden">
-            <div class="flex justify-end mb-4">
-                <button onclick="openUserChat()" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg uppercase text-xs"><i class="fas fa-comments"></i> Chat con Admin</button>
-            </div>
-            <div id="userResList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </div>
-    </main>
-
-    <!-- MODAL REGISTRO -->
-    <div id="modalReg" class="fixed inset-0 bg-slate-900/95 hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[3rem] max-w-md w-full p-10 shadow-2xl">
-            <h3 class="text-3xl font-black mb-6 uppercase italic text-center">Nuevo <span class="text-emerald-600">Equipo</span></h3>
-            <div class="space-y-4">
-                <input type="text" id="reg_name" placeholder="Nombre de Equipo" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <input type="password" id="reg_pass" placeholder="Contraseña para entrar" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <input type="text" id="reg_rep" placeholder="Nombre Representante" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <input type="text" id="reg_phone" placeholder="WhatsApp (Ej: 50688888888)" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <input type="number" id="reg_edad" placeholder="Edad Promedio Equipo" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <button id="btnDoRegister" onclick="handleRegister()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase shadow-lg hover:bg-emerald-700">Crear Cuenta</button>
-                <button onclick="closeModal('modalReg')" class="w-full text-slate-400 font-black text-[10px] uppercase mt-4">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL LOGIN -->
-    <div id="loginModal" class="fixed inset-0 bg-slate-900/95 hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-10 rounded-[3rem] w-full max-w-md shadow-2xl">
-            <h2 class="text-3xl font-black mb-8 italic uppercase text-center">Acceso</h2>
-            <input type="text" id="loginUser" placeholder="Equipo o Admin" class="w-full p-4 border rounded-2xl mb-4 font-bold bg-slate-50 outline-none">
-            <input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-4 border rounded-2xl mb-8 font-bold bg-slate-50 outline-none">
-            <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black uppercase shadow-lg">Entrar</button>
-            <button onclick="showRegister()" class="w-full mt-6 text-emerald-600 font-black text-[10px] uppercase tracking-widest text-center block">¿Eres nuevo? Regístrate aquí</button>
-        </div>
-    </div>
-
-    <!-- MODAL RESERVA -->
-    <div id="modalRes" class="fixed inset-0 bg-slate-900/90 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
-            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-xl">
-                <h4 class="font-black text-amber-800 uppercase text-xs mb-1"><i class="fas fa-exclamation-triangle"></i> Reglas y Condiciones</h4>
-                <p class="text-[10px] text-amber-700 font-bold leading-relaxed">
-                    1. El monto cobrado es una contribución exclusiva para el <span class="font-black">mantenimiento y limpieza</span> de la instalación comunal.<br>
-                    2. <span class="font-black">Horarios Permitidos:</span> Lunes a Viernes de 5:00 PM a 9:00 PM | Sábados y Domingos de 7:00 AM a 6:00 PM.<br>
-                    3. Los pagos se realizan únicamente vía SINPE al número: <span id="displaySinpeModal" class="font-black text-emerald-600">Cargando...</span>
-                </p>
-            </div>
-
-            <div class="grid lg:grid-cols-2 gap-10">
-                <div class="space-y-6">
-                    <h3 class="text-2xl font-black uppercase italic">Detalles de Reserva</h3>
-                    <div class="space-y-4 font-bold text-xs">
-                        <input type="date" id="res_fecha" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="text-slate-400 text-[9px] uppercase">Hora Entrada</label>
-                                <input type="time" id="res_hora_in" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
-                            </div>
-                            <div>
-                                <label class="text-slate-400 text-[9px] uppercase">Hora Salida</label>
-                                <input type="time" id="res_hora_out" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
-                            </div>
-                        </div>
-                        <input type="number" id="res_players" placeholder="Cant. Jugadores" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
-                        <div class="bg-slate-50 p-6 rounded-[2rem] border space-y-2">
-                            <p class="text-[10px] font-black uppercase text-slate-400 text-center">Alquiler de Extras (Kits)</p>
-                            <div class="flex justify-between items-center"><span>Conos (10u = ₡3000)</span><input type="number" id="rent_conos" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
-                            <div class="flex justify-between items-center"><span>Chalecos (15u = ₡3000)</span><input type="number" id="rent_chalecos" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
-                            <div class="flex justify-between items-center"><span>Balones (1u = ₡1000)</span><input type="number" id="rent_balones" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-slate-900 rounded-[3rem] p-8 text-white flex flex-col justify-between">
-                    <div class="space-y-4">
-                        <label class="block border-2 border-dashed border-slate-700 p-4 rounded-2xl text-center cursor-pointer hover:bg-slate-800">
-                            <span id="lbl_pago" class="block text-[10px] font-black">SUBIR COMPROBANTE PAGO</span>
-                            <input type="file" id="res_file_pago" accept="image/*" class="hidden" onchange="handleFile(this, 'pago')">
-                        </label>
-                        <label class="block border-2 border-dashed border-slate-700 p-4 rounded-2xl text-center cursor-pointer hover:bg-slate-800">
-                            <span id="lbl_cedula" class="block text-[10px] font-black">SUBIR FOTO CÉDULA</span>
-                            <input type="file" id="res_file_cedula" accept="image/*" class="hidden" onchange="handleFile(this, 'cedula')">
-                        </label>
-                        <div class="text-center">
-                            <h2 id="res_total_val" class="text-5xl font-black text-emerald-400 italic">₡0</h2>
-                            <p class="text-[9px] text-slate-500 uppercase mt-2">SINPE: <span id="displaySinpeTotal"></span></p>
-                        </div>
-                    </div>
-                    <div class="flex gap-2 mt-4">
-                        <button onclick="closeModal('modalRes')" class="flex-1 bg-slate-800 py-4 rounded-xl text-xs font-black uppercase">Cerrar</button>
-                        <button id="btnSubmitRes" onclick="submitReserva()" class="flex-1 bg-emerald-500 text-slate-900 py-4 rounded-xl text-xs font-black uppercase">Confirmar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL EDITAR RESERVA (ADMIN) -->
-    <div id="modalEditRes" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl">
-            <h3 class="text-2xl font-black mb-4 uppercase italic">Editar Reserva</h3>
-            <input type="hidden" id="edit_res_id">
-            <div class="space-y-4 text-xs font-bold text-slate-600">
-                <div><label>Fecha</label><input type="date" id="edit_res_fecha" class="w-full p-3 border rounded-xl"></div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div><label>Hora Inicio</label><input type="time" id="edit_res_hin" class="w-full p-3 border rounded-xl"></div>
-                    <div><label>Hora Fin</label><input type="time" id="edit_res_hout" class="w-full p-3 border rounded-xl"></div>
-                </div>
-                <div>
-                    <label>Estado del Pago</label>
-                    <select id="edit_res_status" class="w-full p-3 border rounded-xl">
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Pagado">Pagado</option>
-                    </select>
-                </div>
-                <div class="flex gap-2 pt-4">
-                    <button onclick="closeModal('modalEditRes')" class="flex-1 bg-slate-100 py-3 rounded-xl uppercase font-black text-[10px]">Cancelar</button>
-                    <button onclick="saveEditReserva()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl uppercase font-black text-[10px]">Actualizar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CAMBIAR CONTRASEÑA EQUIPO (ADMIN) -->
-    <div id="modalChangePass" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl">
-            <h3 class="text-xl font-black mb-4 uppercase italic">Cambiar Clave Equipo</h3>
-            <input type="hidden" id="change_pass_team_id">
-            <div class="space-y-4">
-                <input type="text" id="change_pass_new" placeholder="Nueva Contraseña" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
-                <div class="flex gap-2 pt-2">
-                    <button onclick="closeModal('modalChangePass')" class="flex-1 bg-slate-100 py-3 rounded-xl uppercase font-black text-[10px]">Cancelar</button>
-                    <button onclick="saveTeamPassword()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl uppercase font-black text-[10px]">Actualizar Clave</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL HISTORIAL DE EQUIPO -->
-    <div id="modalTeamHistory" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2.5rem] max-w-2xl w-full p-8 shadow-2xl max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 id="hist_teamName" class="text-2xl font-black uppercase italic text-emerald-600">Equipo</h3>
-                    <p id="hist_count" class="text-xs font-bold text-slate-400 uppercase">0 Reservas Registradas</p>
-                </div>
-                <button onclick="closeModal('modalTeamHistory')" class="bg-slate-100 p-3 rounded-full hover:bg-slate-200"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="overflow-y-auto flex-1 border rounded-2xl">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400 sticky top-0">
-                        <tr><th class="p-4">Día / Fecha</th><th class="p-4">Horario</th><th class="p-4">Monto</th><th class="p-4">Estado</th></tr>
-                    </thead>
-                    <tbody id="hist_tableBody" class="font-bold divide-y text-slate-600"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CHAT -->
-    <div id="modalChat" class="fixed inset-0 bg-slate-900/90 hidden z-[130] flex items-center justify-center p-4">
-        <div class="bg-white rounded-[2rem] max-w-md w-full h-[600px] flex flex-col overflow-hidden shadow-2xl">
-            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
-                <div>
-                    <h3 id="chatHeaderName" class="font-black italic uppercase text-lg">Chat</h3>
-                    <p class="text-[9px] text-emerald-400">Canal Directo</p>
-                </div>
-                <button onclick="closeModal('modalChat')" class="text-white hover:text-red-400"><i class="fas fa-times fa-lg"></i></button>
-            </div>
-            <div id="chatMessages" class="flex-1 p-4 bg-slate-50 overflow-y-auto chat-scroll space-y-3 flex flex-col"></div>
-            <div class="p-4 bg-white border-t flex gap-2">
-                <input type="text" id="chatInput" placeholder="Escribe un mensaje..." class="flex-1 p-3 bg-slate-100 rounded-xl outline-none text-sm font-bold" onkeypress="if(event.key==='Enter') sendChatMessage()">
-                <button onclick="sendChatMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBs8BO3_CRGa7MI3B6Z-Uslo273M1FQ6u0",
-            authDomain: "web-cancha.firebaseapp.com",
-            projectId: "web-cancha",
-            storageBucket: "web-cancha.firebasestorage.app",
-            messagingSenderId: "395535523926",
-            appId: "1:395535523926:web:64da8d94dadcb08981dbf7"
-        };
-
-        const fApp = initializeApp(firebaseConfig);
-        const auth = getAuth(fApp);
-        const db = getFirestore(fApp);
-
-        let currentUser = null;
-        let teams = [];
-        let reserves = [];
-        let messages = [];
-        let needs = [];
-        let products = [];
-        
-        let globalSinpe = "7228-4602";
-        let globalAdminPass = "Admin2026*";
-        let globalBgImages = ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000"];
-        
-        let imgP = null, imgC = null;
-        let activeChatTeamId = null;
-
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) await signInAnonymously(auth);
-            
-            // Listen Config
-            onSnapshot(doc(db, "config", "general"), (d) => {
-                if(d.exists()) {
-                    globalSinpe = d.data().sinpe || "7228-4602";
-                    globalAdminPass = d.data().adminPass || "Admin2026*";
-                    if(d.data().backgrounds && d.data().backgrounds.length > 0) {
-                        globalBgImages = d.data().backgrounds;
-                        updateLandingBackgrounds();
-                    }
-                    
-                    document.getElementById('config_sinpe').value = globalSinpe;
-                    document.getElementById('displaySinpeModal').innerText = globalSinpe;
-                    document.getElementById('displaySinpeTotal').innerText = globalSinpe;
-                    renderMultimedia();
-                }
-            });
-
-            onSnapshot(collection(db, "teams"), (s) => { teams = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
-            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); renderFinanzas(); document.getElementById('loadingOverlay').classList.add('hidden'); });
-            onSnapshot(collection(db, "messages"), (s) => { messages = s.docs.map(d => ({id:d.id, ...d.data()})); renderChat(); });
-            onSnapshot(collection(db, "needs"), (s) => { needs = s.docs.map(d => ({id:d.id, ...d.data()})); renderTienda(); });
-            onSnapshot(collection(db, "store"), (s) => { products = s.docs.map(d => ({id:d.id, ...d.data()})); renderTienda(); });
-        });
-
-        function updateLandingBackgrounds() {
-            const container = document.getElementById('landingBackgrounds');
-            container.innerHTML = globalBgImages.map((img, i) => `<img src="${img}" class="carousel-img ${i===0?'active':''} w-full h-full object-cover opacity-30">`).join('');
-        }
-
-        // --- AUTH ---
-        window.handleRegister = async () => {
-            const name = document.getElementById('reg_name').value.trim();
-            const pass = document.getElementById('reg_pass').value.trim();
-            if(!name || !pass) return alert("Nombre y clave obligatorios");
-            document.getElementById('btnDoRegister').innerText = "REGISTRANDO...";
-            try {
-                await addDoc(collection(db, "teams"), {
-                    teamName: name, password: pass,
-                    representative: document.getElementById('reg_rep').value,
-                    phone: document.getElementById('reg_phone').value,
-                    avgAge: parseInt(document.getElementById('reg_edad').value || 0)
-                });
-                alert("¡Cuenta creada!"); closeModal('modalReg'); showModal('loginModal');
-            } catch(e) { alert("Error: " + e.message); }
-            document.getElementById('btnDoRegister').innerText = "Crear Cuenta";
-        };
-
-        window.handleLogin = () => {
-            const u = document.getElementById('loginUser').value.trim();
-            const p = document.getElementById('loginPass').value.trim();
-            if(u === 'admin' && p === globalAdminPass) currentUser = {id:'admin', teamName:'ADMINISTRADOR', role:'admin'};
-            else {
-                const f = teams.find(t => t.teamName.toLowerCase() === u.toLowerCase() && t.password === p);
-                if(f) currentUser = {...f, role:'user'};
-                else return alert("Error de acceso o contraseña incorrecta");
-            }
-            document.getElementById('landingPage').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            document.getElementById('userNameDisplay').innerText = currentUser.teamName;
-            document.getElementById('navActions').classList.add('hidden');
-            document.getElementById('navUserZone').classList.remove('hidden');
-            
-            if(currentUser.role === 'admin') {
-                document.getElementById('adminTabs').classList.remove('hidden');
-                document.getElementById('adminPanel').classList.remove('hidden');
-            } else {
-                document.getElementById('btnNewRes').classList.remove('hidden');
-            }
-            
-            closeModal('loginModal');
-            render();
-            renderFinanzas();
-        };
-
-        // --- RESERVAS ---
-        window.handleFile = (input, type) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 400; canvas.height = img.height * (400/img.width);
-                    canvas.getContext('2d').drawImage(img, 0,0, canvas.width, canvas.height);
-                    if(type==='pago') { imgP = canvas.toDataURL('image/jpeg', 0.6); document.getElementById('lbl_pago').innerText="✅ PAGO LISTO"; }
-                    else { imgC = canvas.toDataURL('image/jpeg', 0.6); document.getElementById('lbl_cedula').innerText="✅ CÉDULA LISTA"; }
-                }
-            };
-            reader.readAsDataURL(input.files[0]);
-        };
-
-        window.updateTotal = () => {
-            const h1 = document.getElementById('res_hora_in').value;
-            const h2 = document.getElementById('res_hora_out').value;
-            if(!h1 || !h2) return 0;
-            let h = (new Date(`2024-01-01 ${h2}`) - new Date(`2024-01-01 ${h1}`)) / 3600000;
-            h = h > 0 ? h : 1;
-            let total = ( (currentUser.avgAge < 13 ? 5000 : 10000) * h) + 
-                        (document.getElementById('rent_conos').value * 3000) + 
-                        (document.getElementById('rent_chalecos').value * 3000) + 
-                        (document.getElementById('rent_balones').value * 1000);
-            document.getElementById('res_total_val').innerText = `₡${Math.ceil(total).toLocaleString()}`;
-            return Math.ceil(total);
-        };
-
-        window.submitReserva = async () => {
-            const f = document.getElementById('res_fecha').value;
-            const h1 = document.getElementById('res_hora_in').value;
-            const h2 = document.getElementById('res_hora_out').value;
-
-            if(!f || !h1 || !h2) return alert("Faltan horas o fecha.");
-            
-            // VALIDACIÓN DE HORARIOS L-V 5pm-9pm / S-D 7am-6pm
-            const d = new Date(f + "T" + h1);
-            const day = d.getDay(); // 0 Dom, 1 Lun ... 6 Sab
-            const hour = parseInt(h1.split(":")[0]);
-
-            if (day >= 1 && day <= 5) {
-                if (hour < 17 || hour >= 21) return alert("El horario de Lunes a Viernes es exclusivo de 5:00 PM a 9:00 PM");
-            } else {
-                if (hour < 7 || hour >= 18) return alert("El horario de Sábados y Domingos es exclusivo de 7:00 AM a 6:00 PM");
-            }
-
-            if(!imgP || !imgC) return alert("Faltan fotos de comprobante y cédula");
-            document.getElementById('btnSubmitRes').disabled = true;
-
-            await addDoc(collection(db, "reservations"), {
-                code: "CM-"+Math.floor(1000+Math.random()*9000),
-                teamId: currentUser.id, teamName: currentUser.teamName, phone: currentUser.phone || 'S/N',
-                date: f, hourIn: h1, hourOut: h2,
-                amount: updateTotal(), status: 'Pendiente', imgPago: imgP, imgCedula: imgC,
-                implementos: { conos: document.getElementById('rent_conos').value, chalecos: document.getElementById('rent_chalecos').value, balones: document.getElementById('rent_balones').value },
-                timestamp: new Date().toISOString()
-            });
-            alert("Reserva enviada exitosamente"); closeModal('modalRes');
-            document.getElementById('btnSubmitRes').disabled = false;
-        };
-
-        // --- ADMIN FUNCIONES ---
-        window.saveConfig = async () => {
-            const s = document.getElementById('config_sinpe').value;
-            const p = document.getElementById('config_adminpass').value;
-            let updateData = { sinpe: s };
-            if(p.trim() !== '') updateData.adminPass = p.trim();
-
-            await setDoc(doc(db, "config", "general"), updateData, { merge: true });
-            alert("Configuración actualizada.");
-            document.getElementById('config_adminpass').value = '';
-        };
-
-        window.openEditRes = (id) => {
-            const r = reserves.find(x => x.id === id);
-            if(!r) return;
-            document.getElementById('edit_res_id').value = r.id;
-            document.getElementById('edit_res_fecha').value = r.date;
-            document.getElementById('edit_res_hin').value = r.hourIn;
-            document.getElementById('edit_res_hout').value = r.hourOut;
-            document.getElementById('edit_res_status').value = r.status;
-            showModal('modalEditRes');
-        };
-
-        window.saveEditReserva = async () => {
-            const id = document.getElementById('edit_res_id').value;
-            await updateDoc(doc(db, "reservations", id), {
-                date: document.getElementById('edit_res_fecha').value,
-                hourIn: document.getElementById('edit_res_hin').value,
-                hourOut: document.getElementById('edit_res_hout').value,
-                status: document.getElementById('edit_res_status').value
-            });
-            alert("Reserva actualizada.");
-            closeModal('modalEditRes');
-        };
-
-        window.delRes = async (id) => { if(confirm("¿Borrar reserva?")) await deleteDoc(doc(db,"reservations",id)); };
-        
-        window.sendWA = (phone, code, date, hIn, hOut) => {
-            const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            // Evitar desajuste de zona horaria forzando mediodía
-            const dayName = days[new Date(date + "T12:00:00").getDay()];
-            
-            const msg = `¡Hola! CanchaMaster confirma tu reserva:%0A%0A🗓️ DÍA: ${dayName}, ${date}%0A⏰ HORA: ${hIn} a ${hOut}%0A✅ CÓDIGO: ${code}%0A%0A¡Nos vemos en la cancha! ⚽`;
-            window.open(`https://wa.me/${phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
-        };
-
-        // --- HISTORIAL EQUIPOS Y CONTRASEÑAS ---
-        window.openTeamHistory = (teamId, teamName) => {
-            const history = reserves.filter(r => r.teamId === teamId).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-            document.getElementById('hist_teamName').innerText = teamName;
-            document.getElementById('hist_count').innerText = `${history.length} Reservas Registradas`;
-            
-            const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            document.getElementById('hist_tableBody').innerHTML = history.map(h => {
-                const dayName = days[new Date(h.date + "T12:00:00").getDay()];
-                return `<tr class="border-b hover:bg-slate-50">
-                    <td class="p-4">${dayName}, ${h.date}</td>
-                    <td class="p-4">${h.hourIn} - ${h.hourOut}</td>
-                    <td class="p-4 text-emerald-600">₡${h.amount.toLocaleString()}</td>
-                    <td class="p-4">${h.status}</td>
-                </tr>`;
-            }).join('');
-            showModal('modalTeamHistory');
-        };
-
-        window.openChangePass = (teamId) => {
-            document.getElementById('change_pass_team_id').value = teamId;
-            document.getElementById('change_pass_new').value = '';
-            showModal('modalChangePass');
-        };
-
-        window.saveTeamPassword = async () => {
-            const id = document.getElementById('change_pass_team_id').value;
-            const newPass = document.getElementById('change_pass_new').value.trim();
-            if(!newPass) return alert("Digite una contraseña válida");
-            await updateDoc(doc(db, "teams", id), { password: newPass });
-            alert("Contraseña de equipo actualizada.");
-            closeModal('modalChangePass');
-        };
-
-        // --- TIENDA Y MANTENIMIENTO ---
-        window.addNeed = async () => {
-            const desc = document.getElementById('need_desc').value;
-            const cost = document.getElementById('need_cost').value;
-            if(!desc || !cost) return;
-            await addDoc(collection(db, "needs"), { desc, cost: parseInt(cost) });
-            document.getElementById('need_desc').value = ''; document.getElementById('need_cost').value = '';
-        };
-
-        window.delNeed = async (id) => { await deleteDoc(doc(db, "needs", id)); };
-
-        window.addProduct = async () => {
-            const desc = document.getElementById('prod_desc').value;
-            const price = document.getElementById('prod_price').value;
-            if(!desc || !price) return;
-            await addDoc(collection(db, "store"), { desc, price: parseInt(price) });
-            document.getElementById('prod_desc').value = ''; document.getElementById('prod_price').value = '';
-        };
-
-        window.delProduct = async (id) => { await deleteDoc(doc(db, "store", id)); };
-
-        function renderTienda() {
-            document.getElementById('needsList').innerHTML = needs.map(n => `
-                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border text-xs font-bold">
-                    <span class="text-slate-600">${n.desc}</span>
-                    <div class="flex items-center gap-3">
-                        <span class="text-amber-600">₡${n.cost.toLocaleString()}</span>
-                        <button onclick="delNeed('${n.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-
-            document.getElementById('productsList').innerHTML = products.map(p => `
-                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border text-xs font-bold">
-                    <span class="text-slate-600">${p.desc}</span>
-                    <div class="flex items-center gap-3">
-                        <span class="text-emerald-600">₡${p.price.toLocaleString()}</span>
-                        <button onclick="delProduct('${p.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // --- FINANZAS Y PDF ---
-        function renderFinanzas() {
-            if(!currentUser || currentUser.role !== 'admin') return;
-            const now = new Date();
-            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; // YYYY-MM
-            
-            let tCancha = 0;
-            let tImpl = 0;
-
-            reserves.forEach(r => {
-                if(r.status === 'Pagado' && r.date.startsWith(currentMonthStr)) {
-                    let imp = (r.implementos.conos * 3000) + (r.implementos.chalecos * 3000) + (r.implementos.balones * 1000);
-                    tImpl += imp;
-                    tCancha += (r.amount - imp);
-                }
-            });
-
-            document.getElementById('fin_cancha').innerText = `₡${tCancha.toLocaleString()}`;
-            document.getElementById('fin_impl').innerText = `₡${tImpl.toLocaleString()}`;
-            document.getElementById('fin_total').innerText = `₡${(tCancha + tImpl).toLocaleString()}`;
-        }
-
-        window.exportarReservasPDF = () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Reporte Mensual de Reservas - CanchaMaster", 14, 15);
-            const now = new Date();
-            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-            
-            const tableData = reserves.filter(r => r.date.startsWith(currentMonthStr)).map(r => [
-                r.date, r.teamName, `${r.hourIn}-${r.hourOut}`, r.status, `₡${r.amount}`
-            ]);
-
-            doc.autoTable({
-                head: [['Fecha', 'Equipo', 'Horario', 'Estado', 'Monto']],
-                body: tableData,
-                startY: 20
-            });
-            doc.save(`Reservas_${currentMonthStr}.pdf`);
-        };
-
-        window.exportarIngresosPDF = () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text("Reporte Mensual de Ingresos Financieros", 14, 15);
-            const now = new Date();
-            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-            
-            const tableData = reserves.filter(r => r.status === 'Pagado' && r.date.startsWith(currentMonthStr)).map(r => {
-                let imp = (r.implementos.conos * 3000) + (r.implementos.chalecos * 3000) + (r.implementos.balones * 1000);
-                let cancha = r.amount - imp;
-                return [r.date, r.teamName, `₡${cancha}`, `₡${imp}`, `₡${r.amount}`];
-            });
-
-            doc.autoTable({
-                head: [['Fecha', 'Equipo', 'Cancha', 'Implementos', 'Total Pagado']],
-                body: tableData,
-                startY: 20
-            });
-            doc.save(`Ingresos_${currentMonthStr}.pdf`);
-        };
-
-        // --- MULTIMEDIA ---
-        window.uploadBackground = (input) => {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = new Image();
-                    img.src = e.target.result;
-                    img.onload = async () => {
-                        const canvas = document.createElement('canvas');
-                        const MAX = 1280;
-                        const scale = MAX / img.width;
-                        canvas.width = MAX; canvas.height = img.height * scale;
-                        canvas.getContext('2d').drawImage(img, 0,0, canvas.width, canvas.height);
-                        const b64 = canvas.toDataURL('image/jpeg', 0.5);
-                        
-                        const newImages = [...globalBgImages, b64];
-                        await setDoc(doc(db, "config", "general"), { backgrounds: newImages }, { merge: true });
-                        alert("Fondo agregado correctamente.");
-                    }
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        };
-
-        window.deleteBackground = async (index) => {
-            if(globalBgImages.length <= 1) return alert("Debe quedar al menos una imagen de fondo.");
-            if(confirm("¿Eliminar este fondo?")) {
-                const newImages = globalBgImages.filter((_, i) => i !== index);
-                await setDoc(doc(db, "config", "general"), { backgrounds: newImages }, { merge: true });
-            }
-        };
-
-        function renderMultimedia() {
-            document.getElementById('bgList').innerHTML = globalBgImages.map((img, i) => `
-                <div class="relative rounded-2xl overflow-hidden border">
-                    <img src="${img}" class="w-full h-24 object-cover">
-                    <button onclick="deleteBackground(${i})" class="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-[10px]"><i class="fas fa-times"></i></button>
-                </div>
-            `).join('');
-        }
-
-        // --- CHAT SYSTEM ---
-        window.openUserChat = () => {
-            activeChatTeamId = currentUser.id;
-            document.getElementById('chatHeaderName').innerText = "Chat Administrador";
-            showModal('modalChat');
-            renderChat();
-        };
-
-        window.openAdminChat = (tId, tName) => {
-            activeChatTeamId = tId;
-            document.getElementById('chatHeaderName').innerText = "Chat: " + tName;
-            showModal('modalChat');
-            renderChat();
-        };
-
-        window.sendChatMessage = async () => {
-            const input = document.getElementById('chatInput');
-            const txt = input.value.trim();
-            if(!txt || !activeChatTeamId) return;
-
-            await addDoc(collection(db, "messages"), {
-                teamId: activeChatTeamId,
-                sender: currentUser.role === 'admin' ? 'admin' : currentUser.id,
-                text: txt,
-                timestamp: new Date().toISOString()
-            });
-            input.value = "";
-        };
-
-        function renderChat() {
-            if(!activeChatTeamId) return;
-            const container = document.getElementById('chatMessages');
-            
-            const filtered = messages.filter(m => m.teamId === activeChatTeamId)
-                                     .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            container.innerHTML = filtered.map(m => {
-                const isMe = m.sender === (currentUser.role === 'admin' ? 'admin' : currentUser.id);
-                return `
-                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-[80%] p-3 rounded-2xl text-xs font-bold ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border text-slate-700 rounded-tl-none'}">
-                            ${m.text}
-                            <div class="text-[8px] opacity-60 text-right mt-1">${new Date(m.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
-        }
-
-        // --- RENDERIZADO PRINCIPAL ---
-        function render() {
-            if(!currentUser) return;
-            if(currentUser.role === 'admin') {
-                const sortedRes = [...reserves].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-                document.getElementById('adminTableBody').innerHTML = sortedRes.map(r => {
-                    // Filtrar Implementos visualmente
-                    let impls = [];
-                    if(r.implementos.conos > 0) impls.push(`C:${r.implementos.conos}`);
-                    if(r.implementos.chalecos > 0) impls.push(`Ch:${r.implementos.chalecos}`);
-                    if(r.implementos.balones > 0) impls.push(`B:${r.implementos.balones}`);
-                    let implText = impls.length > 0 ? impls.join(' | ') : 'Ninguno';
-
-                    return `
-                    <tr class="border-b">
-                        <td class="p-6"><span class="code-badge">${r.code}</span><br><span class="text-[10px]">${r.date}</span><br><span class="text-[9px] text-slate-400">${r.hourIn} - ${r.hourOut}</span></td>
-                        <td class="p-6 uppercase">${r.teamName}<br><span class="text-emerald-600 font-bold">${r.phone}</span></td>
-                        <td class="p-6 text-[10px] uppercase font-bold text-slate-500">
-                            ${implText}
-                            <div class="text-emerald-600 font-black text-xs mt-1">₡${r.amount.toLocaleString()}</div>
-                        </td>
-                        <td class="p-6 flex gap-1">
-                            <img src="${r.imgPago}" class="img-preview-admin" onclick="window.open(this.src)">
-                            <img src="${r.imgCedula}" class="img-preview-admin" onclick="window.open(this.src)">
-                        </td>
-                        <td class="p-6 space-y-1">
-                            <div class="flex gap-1 mb-1">
-                                <button onclick="sendWA('${r.phone}','${r.code}','${r.date}','${r.hourIn}','${r.hourOut}')" class="flex-1 bg-emerald-500 text-white p-2 rounded-lg text-[9px] font-black uppercase"><i class="fab fa-whatsapp"></i></button>
-                                <button onclick="openEditRes('${r.id}')" class="flex-1 bg-blue-50 text-blue-500 p-2 rounded-lg text-[9px] font-black uppercase"><i class="fas fa-edit"></i></button>
-                            </div>
-                            <div class="flex gap-1">
-                                <button onclick="window.upd('${r.id}','${r.status}')" class="flex-[2] p-2 rounded-lg text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</button>
-                                <button onclick="window.delRes('${r.id}')" class="flex-1 bg-red-50 text-red-500 p-2 rounded-lg text-[9px]"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    `
-                }).join('');
-
-                document.getElementById('equiposTableBody').innerHTML = teams.map(t => `
-                    <tr class="border-b">
-                        <td class="p-6 font-black uppercase cursor-pointer text-emerald-600 hover:underline" onclick="openTeamHistory('${t.id}', '${t.teamName}')">${t.teamName} <span class="text-[9px] ml-1 text-slate-400">(Ver Historial)</span></td>
-                        <td class="p-6">${t.representative}</td>
-                        <td class="p-6 font-bold text-slate-600">${t.phone}</td>
-                        <td class="p-6 flex gap-2">
-                            <button onclick="openAdminChat('${t.id}','${t.teamName}')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase"><i class="fas fa-comment"></i> Chat</button>
-                            <button onclick="openChangePass('${t.id}')" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase"><i class="fas fa-key"></i> Clave</button>
-                        </td>
-                    </tr>
-                `).join('');
-
-            } else {
-                document.getElementById('userPanel').classList.remove('hidden');
-                const sortedMyRes = reserves.filter(r => r.teamId === currentUser.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-                document.getElementById('userResList').innerHTML = sortedMyRes.map(r => `
-                    <div class="bg-white p-6 rounded-[2rem] border relative shadow-sm hover:shadow-md transition">
-                        <span class="code-badge absolute top-4 right-4">${r.code}</span>
-                        <p class="text-[10px] font-black text-emerald-600">${r.date} @ ${r.hourIn}</p>
-                        <h4 class="text-xl font-black italic uppercase">${r.teamName}</h4>
-                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Conos: ${r.implementos.conos} | Chalecos: ${r.implementos.chalecos} | Balones: ${r.implementos.balones}</p>
-                        <div class="mt-4 flex justify-between items-center border-t pt-4">
-                            <span class="text-sm font-black text-slate-800">₡${r.amount.toLocaleString()}</span>
-                            <div class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        window.upd = async (id, s) => await updateDoc(doc(db,"reservations",id), {status: s==='Pagado'?'Pendiente':'Pagado'});
-        window.showModal = (id) => document.getElementById(id).classList.remove('hidden');
-        window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
-        window.showRegister = () => { closeModal('loginModal'); showModal('modalReg'); };
-        
-        window.switchTab = (tabId) => {
-            ['adminPanel', 'equiposPanel', 'finanzasPanel', 'tiendaPanel', 'multimediaPanel', 'configPanel'].forEach(id => {
-                document.getElementById(id).classList.add('hidden');
-                document.getElementById('tab_' + id).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400";
-            });
-            document.getElementById(tabId).classList.remove('hidden');
-            document.getElementById('tab_' + tabId).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600";
-        };
-
-        // CAROUSEL LOOP
-        setInterval(() => {
-            const s = document.querySelectorAll('.carousel-img');
-            if(s.length > 1){
-                let cur = [...s].findIndex(x => x.classList.contains('active'));
-                s[cur].classList.remove('active');
-                s[(cur+1)%s.length].classList.add('active');
-            }
-        }, 5000);
-    </script>
-</body>
-</html>
+                <div class="bg-white rounded-[2.5rem] border p-8">
+                    <h3 class="text-xl font-black mb-4 uppercase italic">Video HD de Fondo</h3>
+                    <p class="text-[9px] font-bold text-slate-400 mb-4">Ingresa URL de Video MP4 o sube uno.</p>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="videoUrlInput" placeholder="URL .mp4" class="flex
