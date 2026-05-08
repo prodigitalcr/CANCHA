@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CanchaMaster Cloud Pro</title>
+    <title>CanchaMaster Cloud Pro V12</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -14,6 +14,10 @@
         .code-badge { background: #0f172a; color: #38bdf8; font-family: monospace; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
         .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Scrollbar for chat */
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -41,11 +45,21 @@
     </section>
 
     <main id="app" class="p-6 max-w-7xl mx-auto hidden">
-        <div class="flex flex-col md:row justify-between items-center mb-10 gap-4">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <h2 class="text-4xl font-black italic uppercase text-slate-800">Panel de Control</h2>
-            <button id="btnNewRes" onclick="showModal('modalRes')" class="hidden bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Reservar Cancha</button>
+            <div class="flex gap-2">
+                <button id="btnChatAdmin" onclick="openAdminChat()" class="hidden bg-blue-600 text-white px-6 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Chat Mensajes</button>
+                <button id="btnNewRes" onclick="showModal('modalRes')" class="hidden bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl uppercase text-xs">Reservar Cancha</button>
+            </div>
         </div>
 
+        <div id="adminTabs" class="hidden flex gap-4 border-b border-slate-200 mb-6 overflow-x-auto">
+            <button onclick="switchTab('adminPanel')" id="tab_adminPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600">Reservas</button>
+            <button onclick="switchTab('equiposPanel')" id="tab_equiposPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Equipos</button>
+            <button onclick="switchTab('configPanel')" id="tab_configPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Configuración</button>
+        </div>
+
+        <!-- PANEL ADMIN: RESERVAS -->
         <div id="adminPanel" class="hidden space-y-6">
             <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
                 <table class="w-full text-left">
@@ -57,9 +71,42 @@
             </div>
         </div>
 
-        <div id="userPanel" class="hidden grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <!-- PANEL ADMIN: EQUIPOS -->
+        <div id="equiposPanel" class="hidden space-y-6">
+            <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
+                        <tr><th class="p-6">Nombre Equipo</th><th class="p-6">Representante</th><th class="p-6">Contacto</th><th class="p-6">Chat</th></tr>
+                    </thead>
+                    <tbody id="equiposTableBody" class="text-xs font-bold divide-y text-slate-600"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PANEL ADMIN: CONFIGURACIÓN -->
+        <div id="configPanel" class="hidden space-y-6">
+            <div class="bg-white rounded-[2.5rem] border shadow-sm p-8 max-w-lg">
+                <h3 class="text-2xl font-black mb-4 uppercase italic">Configuración Global</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs font-black text-slate-400 uppercase">Número SINPE Oficial</label>
+                        <input type="text" id="config_sinpe" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                    </div>
+                    <button onclick="saveConfig()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL USUARIO (EQUIPOS) -->
+        <div id="userPanel" class="hidden">
+            <div class="flex justify-end mb-4">
+                <button onclick="openUserChat()" class="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black shadow-lg uppercase text-xs"><i class="fas fa-comments"></i> Chat con Admin</button>
+            </div>
+            <div id="userResList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
     </main>
 
+    <!-- MODAL REGISTRO -->
     <div id="modalReg" class="fixed inset-0 bg-slate-900/95 hidden z-[110] flex items-center justify-center p-4">
         <div class="bg-white rounded-[3rem] max-w-md w-full p-10 shadow-2xl">
             <h3 class="text-3xl font-black mb-6 uppercase italic text-center">Nuevo <span class="text-emerald-600">Equipo</span></h3>
@@ -75,6 +122,7 @@
         </div>
     </div>
 
+    <!-- MODAL LOGIN -->
     <div id="loginModal" class="fixed inset-0 bg-slate-900/95 hidden z-[100] flex items-center justify-center p-4">
         <div class="bg-white p-10 rounded-[3rem] w-full max-w-md shadow-2xl">
             <h2 class="text-3xl font-black mb-8 italic uppercase text-center">Acceso</h2>
@@ -85,23 +133,39 @@
         </div>
     </div>
 
-    <div id="modalRes" class="fixed inset-0 bg-slate-900/90 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
+    <!-- MODAL RESERVA -->
+    <div id="modalRes" class="fixed inset-0 bg-slate-900/95 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-xl">
+                <h4 class="font-black text-amber-800 uppercase text-xs mb-1"><i class="fas fa-exclamation-triangle"></i> Reglas y Condiciones</h4>
+                <p class="text-[10px] text-amber-700 font-bold leading-relaxed">
+                    1. El monto cobrado es una contribución exclusiva para el <span class="font-black">mantenimiento y limpieza</span> de la instalación comunal.<br>
+                    2. <span class="font-black">Horarios Permitidos:</span> Lunes a Viernes de 5:00 PM a 9:00 PM | Sábados y Domingos de 7:00 AM a 6:00 PM.<br>
+                    3. Los pagos se realizan únicamente vía SINPE al número: <span id="displaySinpeModal" class="font-black text-emerald-600">Cargando...</span>
+                </p>
+            </div>
+
             <div class="grid lg:grid-cols-2 gap-10">
                 <div class="space-y-6">
                     <h3 class="text-2xl font-black uppercase italic">Detalles de Reserva</h3>
                     <div class="space-y-4 font-bold text-xs">
                         <input type="date" id="res_fecha" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
                         <div class="grid grid-cols-2 gap-4">
-                            <input type="time" id="res_hora_in" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
-                            <input type="time" id="res_hora_out" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
+                            <div>
+                                <label class="text-slate-400 text-[9px] uppercase">Hora Entrada</label>
+                                <input type="time" id="res_hora_in" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
+                            </div>
+                            <div>
+                                <label class="text-slate-400 text-[9px] uppercase">Hora Salida</label>
+                                <input type="time" id="res_hora_out" onchange="updateTotal()" class="w-full p-4 border rounded-2xl bg-slate-50">
+                            </div>
                         </div>
                         <input type="number" id="res_players" placeholder="Cant. Jugadores" class="w-full p-4 border rounded-2xl bg-slate-50 outline-none">
                         <div class="bg-slate-50 p-6 rounded-[2rem] border space-y-2">
-                            <p class="text-[10px] font-black uppercase text-slate-400 text-center">Alquiler de Extras</p>
-                            <div class="flex justify-between"><span>Conos (₡200)</span><input type="number" id="rent_conos" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
-                            <div class="flex justify-between"><span>Chalecos (₡3000)</span><input type="number" id="rent_chalecos" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
-                            <div class="flex justify-between"><span>Balones (₡1000)</span><input type="number" id="rent_balones" value="0" onchange="updateTotal()" class="w-12 text-center border"></div>
+                            <p class="text-[10px] font-black uppercase text-slate-400 text-center">Alquiler de Extras (Kits)</p>
+                            <div class="flex justify-between items-center"><span>Conos (10u = ₡3000)</span><input type="number" id="rent_conos" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
+                            <div class="flex justify-between items-center"><span>Chalecos (15u = ₡3000)</span><input type="number" id="rent_chalecos" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
+                            <div class="flex justify-between items-center"><span>Balones (1u = ₡1000)</span><input type="number" id="rent_balones" value="0" min="0" onchange="updateTotal()" class="w-16 p-2 text-center border rounded-xl outline-none"></div>
                         </div>
                     </div>
                 </div>
@@ -117,7 +181,7 @@
                         </label>
                         <div class="text-center">
                             <h2 id="res_total_val" class="text-5xl font-black text-emerald-400 italic">₡0</h2>
-                            <p class="text-[9px] text-slate-500 uppercase">SINPE: 7228-4602</p>
+                            <p class="text-[9px] text-slate-500 uppercase mt-2">SINPE: <span id="displaySinpeTotal"></span></p>
                         </div>
                     </div>
                     <div class="flex gap-2 mt-4">
@@ -129,10 +193,58 @@
         </div>
     </div>
 
+    <!-- MODAL EDITAR RESERVA (ADMIN) -->
+    <div id="modalEditRes" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl">
+            <h3 class="text-2xl font-black mb-4 uppercase italic">Editar Reserva</h3>
+            <input type="hidden" id="edit_res_id">
+            <div class="space-y-4 text-xs font-bold text-slate-600">
+                <div><label>Fecha</label><input type="date" id="edit_res_fecha" class="w-full p-3 border rounded-xl"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label>Hora Inicio</label><input type="time" id="edit_res_hin" class="w-full p-3 border rounded-xl"></div>
+                    <div><label>Hora Fin</label><input type="time" id="edit_res_hout" class="w-full p-3 border rounded-xl"></div>
+                </div>
+                <div>
+                    <label>Estado del Pago</label>
+                    <select id="edit_res_status" class="w-full p-3 border rounded-xl">
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Pagado">Pagado</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-4">
+                    <button onclick="closeModal('modalEditRes')" class="flex-1 bg-slate-100 py-3 rounded-xl uppercase font-black text-[10px]">Cancelar</button>
+                    <button onclick="saveEditReserva()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl uppercase font-black text-[10px]">Actualizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CHAT -->
+    <div id="modalChat" class="fixed inset-0 bg-slate-900/90 hidden z-[130] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2rem] max-w-md w-full h-[600px] flex flex-col overflow-hidden shadow-2xl">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center">
+                <div>
+                    <h3 id="chatHeaderName" class="font-black italic uppercase text-lg">Chat</h3>
+                    <p class="text-[9px] text-emerald-400">Canal Directo</p>
+                </div>
+                <button onclick="closeModal('modalChat')" class="text-white hover:text-red-400"><i class="fas fa-times fa-lg"></i></button>
+            </div>
+            
+            <div id="chatMessages" class="flex-1 p-4 bg-slate-50 overflow-y-auto chat-scroll space-y-3 flex flex-col">
+                <!-- Messages render here -->
+            </div>
+
+            <div class="p-4 bg-white border-t flex gap-2">
+                <input type="text" id="chatInput" placeholder="Escribe un mensaje..." class="flex-1 p-3 bg-slate-100 rounded-xl outline-none text-sm font-bold" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBs8BO3_CRGa7MI3B6Z-Uslo273M1FQ6u0",
@@ -150,14 +262,35 @@
         let currentUser = null;
         let teams = [];
         let reserves = [];
+        let messages = [];
+        let globalSinpe = "7228-4602";
         let imgP = null, imgC = null;
+        
+        // Variables para Chat
+        let activeChatTeamId = null;
 
         onAuthStateChanged(auth, async (user) => {
             if (!user) await signInAnonymously(auth);
+            
+            // Listen Config
+            onSnapshot(doc(db, "config", "general"), (d) => {
+                if(d.exists()) {
+                    globalSinpe = d.data().sinpe || "7228-4602";
+                    document.getElementById('config_sinpe').value = globalSinpe;
+                    document.getElementById('displaySinpeModal').innerText = globalSinpe;
+                    document.getElementById('displaySinpeTotal').innerText = globalSinpe;
+                }
+            });
+
             onSnapshot(collection(db, "teams"), (s) => { teams = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
-            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); document.getElementById('loadingOverlay').remove(); });
+            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); document.getElementById('loadingOverlay').classList.add('hidden'); });
+            onSnapshot(collection(db, "messages"), (s) => { 
+                messages = s.docs.map(d => ({id:d.id, ...d.data()})); 
+                renderChat(); 
+            });
         });
 
+        // --- AUTH ---
         window.handleRegister = async () => {
             const name = document.getElementById('reg_name').value.trim();
             const pass = document.getElementById('reg_pass').value.trim();
@@ -189,11 +322,19 @@
             document.getElementById('userNameDisplay').innerText = currentUser.teamName;
             document.getElementById('navActions').classList.add('hidden');
             document.getElementById('navUserZone').classList.remove('hidden');
-            if(currentUser.role==='user') document.getElementById('btnNewRes').classList.remove('hidden');
+            
+            if(currentUser.role === 'admin') {
+                document.getElementById('adminTabs').classList.remove('hidden');
+                document.getElementById('adminPanel').classList.remove('hidden');
+            } else {
+                document.getElementById('btnNewRes').classList.remove('hidden');
+            }
+            
             closeModal('loginModal');
             render();
         };
 
+        // --- RESERVAS ---
         window.handleFile = (input, type) => {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -216,54 +357,190 @@
             if(!h1 || !h2) return 0;
             let h = (new Date(`2024-01-01 ${h2}`) - new Date(`2024-01-01 ${h1}`)) / 3600000;
             h = h > 0 ? h : 1;
-            let total = ( (currentUser.avgAge < 13 ? 5000 : 10000) * h) + (document.getElementById('rent_conos').value * 200) + (document.getElementById('rent_chalecos').value * 3000) + (document.getElementById('rent_balones').value * 1000);
+            let total = ( (currentUser.avgAge < 13 ? 5000 : 10000) * h) + 
+                        (document.getElementById('rent_conos').value * 3000) + 
+                        (document.getElementById('rent_chalecos').value * 3000) + 
+                        (document.getElementById('rent_balones').value * 1000);
             document.getElementById('res_total_val').innerText = `₡${Math.ceil(total).toLocaleString()}`;
             return Math.ceil(total);
         };
 
         window.submitReserva = async () => {
+            const f = document.getElementById('res_fecha').value;
+            const h1 = document.getElementById('res_hora_in').value;
+            const h2 = document.getElementById('res_hora_out').value;
+
+            if(!f || !h1 || !h2) return alert("Faltan horas o fecha.");
+            
+            // VALIDACIÓN DE HORARIOS
+            const d = new Date(f + "T" + h1);
+            const day = d.getDay(); // 0 Dom, 1 Lun ... 6 Sab
+            const hour = parseInt(h1.split(":")[0]);
+
+            if (day >= 1 && day <= 5) { // Lunes a Viernes
+                if (hour < 17 || hour >= 21) return alert("Horario de Lunes a Viernes es de 5:00 PM a 9:00 PM");
+            } else { // Sabado y Domingo
+                if (hour < 7 || hour >= 18) return alert("Horario de Sábados y Domingos es de 7:00 AM a 6:00 PM");
+            }
+
             if(!imgP || !imgC) return alert("Faltan fotos de comprobante y cédula");
             document.getElementById('btnSubmitRes').disabled = true;
+
             await addDoc(collection(db, "reservations"), {
                 code: "CM-"+Math.floor(1000+Math.random()*9000),
                 teamId: currentUser.id, teamName: currentUser.teamName, phone: currentUser.phone || 'S/N',
-                date: document.getElementById('res_fecha').value, hour: document.getElementById('res_hora_in').value,
+                date: f, hourIn: h1, hourOut: h2,
                 amount: updateTotal(), status: 'Pendiente', imgPago: imgP, imgCedula: imgC,
                 implementos: { cones: document.getElementById('rent_conos').value, vests: document.getElementById('rent_chalecos').value, balls: document.getElementById('rent_balones').value },
                 timestamp: new Date().toISOString()
             });
-            alert("Reserva enviada"); closeModal('modalRes');
+            alert("Reserva enviada exitosamente"); closeModal('modalRes');
             document.getElementById('btnSubmitRes').disabled = false;
         };
 
+        // --- ADMIN FUNCIONES ---
+        window.saveConfig = async () => {
+            const s = document.getElementById('config_sinpe').value;
+            await setDoc(doc(db, "config", "general"), { sinpe: s }, { merge: true });
+            alert("Configuración actualizada.");
+        };
+
+        window.openEditRes = (id) => {
+            const r = reserves.find(x => x.id === id);
+            if(!r) return;
+            document.getElementById('edit_res_id').value = r.id;
+            document.getElementById('edit_res_fecha').value = r.date;
+            document.getElementById('edit_res_hin').value = r.hourIn;
+            document.getElementById('edit_res_hout').value = r.hourOut;
+            document.getElementById('edit_res_status').value = r.status;
+            showModal('modalEditRes');
+        };
+
+        window.saveEditReserva = async () => {
+            const id = document.getElementById('edit_res_id').value;
+            await updateDoc(doc(db, "reservations", id), {
+                date: document.getElementById('edit_res_fecha').value,
+                hourIn: document.getElementById('edit_res_hin').value,
+                hourOut: document.getElementById('edit_res_hout').value,
+                status: document.getElementById('edit_res_status').value
+            });
+            alert("Reserva actualizada.");
+            closeModal('modalEditRes');
+        };
+
+        window.delRes = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db,"reservations",id)); };
+        
+        window.sendWA = (phone, code, date, hIn, hOut) => {
+            const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            const dayName = days[new Date(date + "T00:00:00").getDay()];
+            
+            const msg = `¡Hola! CanchaMaster confirma tu reserva:%0A%0A🗓️ DÍA: ${dayName}, ${date}%0A⏰ HORA: ${hIn} a ${hOut}%0A✅ CÓDIGO: ${code}%0A%0A¡Nos vemos en la cancha! ⚽`;
+            window.open(`https://wa.me/${phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+        };
+
+        // --- CHAT SYSTEM ---
+        window.openUserChat = () => {
+            activeChatTeamId = currentUser.id;
+            document.getElementById('chatHeaderName').innerText = "Chat Administrador";
+            showModal('modalChat');
+            renderChat();
+        };
+
+        window.openAdminChat = (tId, tName) => {
+            activeChatTeamId = tId;
+            document.getElementById('chatHeaderName').innerText = "Chat: " + tName;
+            showModal('modalChat');
+            renderChat();
+        };
+
+        window.sendChatMessage = async () => {
+            const input = document.getElementById('chatInput');
+            const txt = input.value.trim();
+            if(!txt || !activeChatTeamId) return;
+
+            await addDoc(collection(db, "messages"), {
+                teamId: activeChatTeamId,
+                sender: currentUser.role === 'admin' ? 'admin' : currentUser.id,
+                text: txt,
+                timestamp: new Date().toISOString()
+            });
+            input.value = "";
+        };
+
+        function renderChat() {
+            if(!activeChatTeamId) return;
+            const container = document.getElementById('chatMessages');
+            
+            const filtered = messages.filter(m => m.teamId === activeChatTeamId)
+                                     .sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+            container.innerHTML = filtered.map(m => {
+                const isMe = m.sender === (currentUser.role === 'admin' ? 'admin' : currentUser.id);
+                return `
+                    <div class="flex ${isMe ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[80%] p-3 rounded-2xl text-xs font-bold ${isMe ? 'bg-emerald-600 text-white rounded-tr-none' : 'bg-white border text-slate-700 rounded-tl-none'}">
+                            ${m.text}
+                            <div class="text-[8px] opacity-60 text-right mt-1">${new Date(m.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+        }
+
+        // --- RENDERIZADO GENERAL ---
         function render() {
             if(!currentUser) return;
             if(currentUser.role === 'admin') {
-                document.getElementById('adminPanel').classList.remove('hidden');
-                document.getElementById('adminTableBody').innerHTML = reserves.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(r => `
+                const sortedRes = [...reserves].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                document.getElementById('adminTableBody').innerHTML = sortedRes.map(r => `
                     <tr class="border-b">
-                        <td class="p-6"><span class="code-badge">${r.code}</span><br>${r.date}</td>
-                        <td class="p-6 uppercase">${r.teamName}<br><span class="text-emerald-600">${r.phone}</span></td>
-                        <td class="p-6">₡${r.amount.toLocaleString()}</td>
+                        <td class="p-6"><span class="code-badge">${r.code}</span><br><span class="text-[10px]">${r.date}</span><br><span class="text-[9px] text-slate-400">${r.hourIn} - ${r.hourOut}</span></td>
+                        <td class="p-6 uppercase">${r.teamName}<br><span class="text-emerald-600 font-bold">${r.phone}</span></td>
+                        <td class="p-6 text-[10px] uppercase">
+                            <span class="text-slate-500 font-black">C:</span>${r.implementos.conos} 
+                            <span class="text-slate-500 font-black ml-1">Ch:</span>${r.implementos.chalecos} 
+                            <span class="text-slate-500 font-black ml-1">B:</span>${r.implementos.balones}
+                            <div class="text-emerald-600 font-black text-xs mt-1">₡${r.amount.toLocaleString()}</div>
+                        </td>
                         <td class="p-6 flex gap-1">
                             <img src="${r.imgPago}" class="img-preview-admin" onclick="window.open(this.src)">
                             <img src="${r.imgCedula}" class="img-preview-admin" onclick="window.open(this.src)">
                         </td>
                         <td class="p-6 space-y-1">
-                            <button onclick="window.upd('${r.id}','${r.status}')" class="w-full p-2 rounded-lg text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</button>
-                            <button onclick="window.del('${r.id}')" class="w-full bg-red-50 text-red-500 p-2 rounded-lg text-[9px]">ELIMINAR</button>
+                            <div class="flex gap-1 mb-1">
+                                <button onclick="sendWA('${r.phone}','${r.code}','${r.date}','${r.hourIn}','${r.hourOut}')" class="flex-1 bg-emerald-500 text-white p-2 rounded-lg text-[9px] font-black uppercase"><i class="fab fa-whatsapp"></i></button>
+                                <button onclick="openEditRes('${r.id}')" class="flex-1 bg-blue-50 text-blue-500 p-2 rounded-lg text-[9px] font-black uppercase"><i class="fas fa-edit"></i></button>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="window.upd('${r.id}','${r.status}')" class="flex-[2] p-2 rounded-lg text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</button>
+                                <button onclick="window.delRes('${r.id}')" class="flex-1 bg-red-50 text-red-500 p-2 rounded-lg text-[9px]"><i class="fas fa-trash"></i></button>
+                            </div>
                         </td>
                     </tr>
                 `).join('');
+
+                document.getElementById('equiposTableBody').innerHTML = teams.map(t => `
+                    <tr class="border-b">
+                        <td class="p-6 font-black uppercase">${t.teamName}</td>
+                        <td class="p-6">${t.representative}</td>
+                        <td class="p-6 font-bold text-emerald-600">${t.phone}</td>
+                        <td class="p-6"><button onclick="openAdminChat('${t.id}','${t.teamName}')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"><i class="fas fa-comment"></i> Chat</button></td>
+                    </tr>
+                `).join('');
+
             } else {
                 document.getElementById('userPanel').classList.remove('hidden');
-                document.getElementById('userPanel').innerHTML = reserves.filter(r => r.teamId === currentUser.id).map(r => `
-                    <div class="bg-white p-6 rounded-[2rem] border relative shadow-sm">
+                const sortedMyRes = reserves.filter(r => r.teamId === currentUser.id).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+                document.getElementById('userResList').innerHTML = sortedMyRes.map(r => `
+                    <div class="bg-white p-6 rounded-[2rem] border relative shadow-sm hover:shadow-md transition">
                         <span class="code-badge absolute top-4 right-4">${r.code}</span>
-                        <p class="text-[10px] font-black text-emerald-600">${r.date} @ ${r.hour}</p>
+                        <p class="text-[10px] font-black text-emerald-600">${r.date} @ ${r.hourIn}</p>
                         <h4 class="text-xl font-black italic uppercase">${r.teamName}</h4>
-                        <div class="mt-4 flex justify-between items-center">
-                            <span class="text-xs font-bold">₡${r.amount.toLocaleString()}</span>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold">Conos: ${r.implementos.conos} | Chalecos: ${r.implementos.chalecos} | Balones: ${r.implementos.balones}</p>
+                        <div class="mt-4 flex justify-between items-center border-t pt-4">
+                            <span class="text-sm font-black text-slate-800">₡${r.amount.toLocaleString()}</span>
                             <div class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${r.status==='Pagado'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${r.status}</div>
                         </div>
                     </div>
@@ -272,10 +549,18 @@
         }
 
         window.upd = async (id, s) => await updateDoc(doc(db,"reservations",id), {status: s==='Pagado'?'Pendiente':'Pagado'});
-        window.del = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db,"reservations",id)); };
         window.showModal = (id) => document.getElementById(id).classList.remove('hidden');
         window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
         window.showRegister = () => { closeModal('loginModal'); showModal('modalReg'); };
+        
+        window.switchTab = (tabId) => {
+            ['adminPanel', 'equiposPanel', 'configPanel'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+                document.getElementById('tab_' + id).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400";
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('tab_' + tabId).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600";
+        };
     </script>
 </body>
 </html>
