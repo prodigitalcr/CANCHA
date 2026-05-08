@@ -3,9 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CanchaMaster Cloud Pro V12</title>
+    <title>CanchaMaster Cloud Pro V13</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Librerías para Exportar a PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap');
         body { font-family: 'Outfit', sans-serif; background-color: #f8fafc; }
@@ -14,7 +19,6 @@
         .code-badge { background: #0f172a; color: #38bdf8; font-family: monospace; padding: 4px 10px; border-radius: 8px; font-weight: bold; }
         .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Scrollbar for chat */
         .chat-scroll::-webkit-scrollbar { width: 6px; }
         .chat-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -39,8 +43,11 @@
     </nav>
 
     <section id="landingPage" class="flex flex-col items-center justify-center h-[80vh] text-center p-6">
-        <h1 class="text-6xl md:text-8xl font-black italic uppercase mb-4 text-slate-900">WEB-<span class="text-emerald-600">CANCHA</span></h1>
-        <p class="text-slate-500 font-bold mb-8 uppercase text-sm tracking-widest">Tus reservas seguras en Firebase Cloud</p>
+        <div class="absolute inset-0 bg-slate-900 -z-10" id="landingBackgrounds">
+            <img src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000" class="carousel-img active w-full h-full object-cover opacity-30">
+        </div>
+        <h1 class="text-6xl md:text-8xl font-black italic uppercase mb-4 text-white drop-shadow-2xl">WEB-<span class="text-emerald-500">CANCHA</span></h1>
+        <p class="text-slate-300 font-bold mb-8 uppercase text-sm tracking-widest drop-shadow-md">Tus reservas seguras en Firebase Cloud</p>
         <button onclick="showModal('loginModal')" class="bg-emerald-600 text-white px-12 py-5 rounded-[2rem] font-black uppercase shadow-2xl hover:scale-105 transition-all">Iniciar Ahora</button>
     </section>
 
@@ -53,9 +60,12 @@
             </div>
         </div>
 
-        <div id="adminTabs" class="hidden flex gap-4 border-b border-slate-200 mb-6 overflow-x-auto">
+        <div id="adminTabs" class="hidden flex gap-4 border-b border-slate-200 mb-6 overflow-x-auto whitespace-nowrap">
             <button onclick="switchTab('adminPanel')" id="tab_adminPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600">Reservas</button>
             <button onclick="switchTab('equiposPanel')" id="tab_equiposPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Equipos</button>
+            <button onclick="switchTab('finanzasPanel')" id="tab_finanzasPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Finanzas</button>
+            <button onclick="switchTab('tiendaPanel')" id="tab_tiendaPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Mantenimiento y Tienda</button>
+            <button onclick="switchTab('multimediaPanel')" id="tab_multimediaPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Multimedia</button>
             <button onclick="switchTab('configPanel')" id="tab_configPanel" class="px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400">Configuración</button>
         </div>
 
@@ -76,23 +86,87 @@
             <div class="bg-white rounded-[2.5rem] border shadow-sm overflow-hidden overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase">
-                        <tr><th class="p-6">Nombre Equipo</th><th class="p-6">Representante</th><th class="p-6">Contacto</th><th class="p-6">Chat</th></tr>
+                        <tr><th class="p-6">Nombre Equipo</th><th class="p-6">Representante</th><th class="p-6">Contacto</th><th class="p-6">Acciones Adicionales</th></tr>
                     </thead>
                     <tbody id="equiposTableBody" class="text-xs font-bold divide-y text-slate-600"></tbody>
                 </table>
             </div>
         </div>
 
+        <!-- PANEL ADMIN: FINANZAS -->
+        <div id="finanzasPanel" class="hidden space-y-6">
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Ingresos por Cancha (Mes)</p>
+                    <h3 id="fin_cancha" class="text-4xl font-black text-emerald-600">₡0</h3>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-slate-400 mb-2">Ingresos Implementos (Mes)</p>
+                    <h3 id="fin_impl" class="text-4xl font-black text-blue-600">₡0</h3>
+                </div>
+                <div class="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl text-white">
+                    <p class="text-[10px] font-black uppercase text-emerald-400 mb-2">Total General (Mes)</p>
+                    <h3 id="fin_total" class="text-4xl font-black">₡0</h3>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="exportarReservasPDF()" class="bg-red-600 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf"></i> Exportar Reservas</button>
+                <button onclick="exportarIngresosPDF()" class="bg-emerald-600 text-white px-6 py-4 rounded-2xl font-black uppercase text-xs shadow-lg"><i class="fas fa-file-pdf"></i> Exportar Ingresos</button>
+            </div>
+        </div>
+
+        <!-- PANEL ADMIN: TIENDA Y MANTENIMIENTO -->
+        <div id="tiendaPanel" class="hidden grid md:grid-cols-2 gap-8">
+            <!-- Mantenimiento -->
+            <div class="bg-white rounded-[2.5rem] border p-8">
+                <h3 class="text-2xl font-black italic uppercase mb-6 text-amber-600">Necesidades Cancha</h3>
+                <div class="flex gap-2 mb-6">
+                    <input type="text" id="need_desc" placeholder="Descripción (Ej: Malla nueva)" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <input type="number" id="need_cost" placeholder="Costo" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <button onclick="addNeed()" class="bg-amber-500 text-white px-4 rounded-xl font-black"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="needsList" class="space-y-3"></div>
+            </div>
+            <!-- Tienda -->
+            <div class="bg-white rounded-[2.5rem] border p-8">
+                <h3 class="text-2xl font-black italic uppercase mb-6 text-emerald-600">Inventario / Ventas</h3>
+                <div class="flex gap-2 mb-6">
+                    <input type="text" id="prod_desc" placeholder="Producto (Ej: Gatorade)" class="flex-1 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <input type="number" id="prod_price" placeholder="Precio" class="w-24 p-3 bg-slate-50 border rounded-xl text-xs font-bold outline-none">
+                    <button onclick="addProduct()" class="bg-emerald-500 text-white px-4 rounded-xl font-black"><i class="fas fa-plus"></i></button>
+                </div>
+                <div id="productsList" class="space-y-3"></div>
+            </div>
+        </div>
+
+        <!-- PANEL ADMIN: MULTIMEDIA -->
+        <div id="multimediaPanel" class="hidden space-y-6">
+            <div class="bg-white rounded-[2.5rem] border p-8 max-w-xl">
+                <h3 class="text-2xl font-black mb-4 uppercase italic">Fondos de Pantalla</h3>
+                <p class="text-xs text-slate-500 mb-6 font-bold">Agrega imágenes para personalizar la pantalla de inicio de los equipos.</p>
+                <label class="block border-2 border-dashed border-emerald-500 p-8 rounded-3xl text-center cursor-pointer hover:bg-emerald-50 transition mb-6">
+                    <i class="fas fa-image text-emerald-500 text-3xl mb-2"></i>
+                    <span class="block text-xs font-black uppercase text-emerald-600">Subir Nueva Imagen</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="uploadBackground(this)">
+                </label>
+                <div id="bgList" class="grid grid-cols-2 gap-4"></div>
+            </div>
+        </div>
+
         <!-- PANEL ADMIN: CONFIGURACIÓN -->
         <div id="configPanel" class="hidden space-y-6">
             <div class="bg-white rounded-[2.5rem] border shadow-sm p-8 max-w-lg">
-                <h3 class="text-2xl font-black mb-4 uppercase italic">Configuración Global</h3>
-                <div class="space-y-4">
+                <h3 class="text-2xl font-black mb-6 uppercase italic">Configuración Global</h3>
+                <div class="space-y-6">
                     <div>
                         <label class="text-xs font-black text-slate-400 uppercase">Número SINPE Oficial</label>
-                        <input type="text" id="config_sinpe" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                        <input type="text" id="config_sinpe" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none mt-2">
                     </div>
-                    <button onclick="saveConfig()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Guardar Cambios</button>
+                    <div class="pt-4 border-t">
+                        <label class="text-xs font-black text-slate-400 uppercase">Cambiar Contraseña Administrador</label>
+                        <input type="password" id="config_adminpass" placeholder="Nueva Contraseña Admin" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none mt-2">
+                    </div>
+                    <button onclick="saveConfig()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Guardar Configuración</button>
                 </div>
             </div>
         </div>
@@ -134,8 +208,8 @@
     </div>
 
     <!-- MODAL RESERVA -->
-    <div id="modalRes" class="fixed inset-0 bg-slate-900/95 hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
+    <div id="modalRes" class="fixed inset-0 bg-slate-900/90 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-[3rem] max-w-5xl w-full p-10 shadow-2xl max-h-[95vh] overflow-y-auto">
             <div class="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-xl">
                 <h4 class="font-black text-amber-800 uppercase text-xs mb-1"><i class="fas fa-exclamation-triangle"></i> Reglas y Condiciones</h4>
                 <p class="text-[10px] text-amber-700 font-bold leading-relaxed">
@@ -219,6 +293,42 @@
         </div>
     </div>
 
+    <!-- MODAL CAMBIAR CONTRASEÑA EQUIPO (ADMIN) -->
+    <div id="modalChangePass" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] max-w-sm w-full p-8 shadow-2xl">
+            <h3 class="text-xl font-black mb-4 uppercase italic">Cambiar Clave Equipo</h3>
+            <input type="hidden" id="change_pass_team_id">
+            <div class="space-y-4">
+                <input type="text" id="change_pass_new" placeholder="Nueva Contraseña" class="w-full p-4 border rounded-2xl font-bold bg-slate-50 outline-none">
+                <div class="flex gap-2 pt-2">
+                    <button onclick="closeModal('modalChangePass')" class="flex-1 bg-slate-100 py-3 rounded-xl uppercase font-black text-[10px]">Cancelar</button>
+                    <button onclick="saveTeamPassword()" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl uppercase font-black text-[10px]">Actualizar Clave</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HISTORIAL DE EQUIPO -->
+    <div id="modalTeamHistory" class="fixed inset-0 bg-slate-900/90 hidden z-[120] flex items-center justify-center p-4">
+        <div class="bg-white rounded-[2.5rem] max-w-2xl w-full p-8 shadow-2xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 id="hist_teamName" class="text-2xl font-black uppercase italic text-emerald-600">Equipo</h3>
+                    <p id="hist_count" class="text-xs font-bold text-slate-400 uppercase">0 Reservas Registradas</p>
+                </div>
+                <button onclick="closeModal('modalTeamHistory')" class="bg-slate-100 p-3 rounded-full hover:bg-slate-200"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="overflow-y-auto flex-1 border rounded-2xl">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400 sticky top-0">
+                        <tr><th class="p-4">Día / Fecha</th><th class="p-4">Horario</th><th class="p-4">Monto</th><th class="p-4">Estado</th></tr>
+                    </thead>
+                    <tbody id="hist_tableBody" class="font-bold divide-y text-slate-600"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL CHAT -->
     <div id="modalChat" class="fixed inset-0 bg-slate-900/90 hidden z-[130] flex items-center justify-center p-4">
         <div class="bg-white rounded-[2rem] max-w-md w-full h-[600px] flex flex-col overflow-hidden shadow-2xl">
@@ -229,11 +339,7 @@
                 </div>
                 <button onclick="closeModal('modalChat')" class="text-white hover:text-red-400"><i class="fas fa-times fa-lg"></i></button>
             </div>
-            
-            <div id="chatMessages" class="flex-1 p-4 bg-slate-50 overflow-y-auto chat-scroll space-y-3 flex flex-col">
-                <!-- Messages render here -->
-            </div>
-
+            <div id="chatMessages" class="flex-1 p-4 bg-slate-50 overflow-y-auto chat-scroll space-y-3 flex flex-col"></div>
             <div class="p-4 bg-white border-t flex gap-2">
                 <input type="text" id="chatInput" placeholder="Escribe un mensaje..." class="flex-1 p-3 bg-slate-100 rounded-xl outline-none text-sm font-bold" onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button onclick="sendChatMessage()" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black"><i class="fas fa-paper-plane"></i></button>
@@ -263,10 +369,14 @@
         let teams = [];
         let reserves = [];
         let messages = [];
-        let globalSinpe = "7228-4602";
-        let imgP = null, imgC = null;
+        let needs = [];
+        let products = [];
         
-        // Variables para Chat
+        let globalSinpe = "7228-4602";
+        let globalAdminPass = "Admin2026*";
+        let globalBgImages = ["https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000"];
+        
+        let imgP = null, imgC = null;
         let activeChatTeamId = null;
 
         onAuthStateChanged(auth, async (user) => {
@@ -276,19 +386,30 @@
             onSnapshot(doc(db, "config", "general"), (d) => {
                 if(d.exists()) {
                     globalSinpe = d.data().sinpe || "7228-4602";
+                    globalAdminPass = d.data().adminPass || "Admin2026*";
+                    if(d.data().backgrounds && d.data().backgrounds.length > 0) {
+                        globalBgImages = d.data().backgrounds;
+                        updateLandingBackgrounds();
+                    }
+                    
                     document.getElementById('config_sinpe').value = globalSinpe;
                     document.getElementById('displaySinpeModal').innerText = globalSinpe;
                     document.getElementById('displaySinpeTotal').innerText = globalSinpe;
+                    renderMultimedia();
                 }
             });
 
             onSnapshot(collection(db, "teams"), (s) => { teams = s.docs.map(d => ({id:d.id, ...d.data()})); render(); });
-            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); document.getElementById('loadingOverlay').classList.add('hidden'); });
-            onSnapshot(collection(db, "messages"), (s) => { 
-                messages = s.docs.map(d => ({id:d.id, ...d.data()})); 
-                renderChat(); 
-            });
+            onSnapshot(collection(db, "reservations"), (s) => { reserves = s.docs.map(d => ({id:d.id, ...d.data()})); render(); renderFinanzas(); document.getElementById('loadingOverlay').classList.add('hidden'); });
+            onSnapshot(collection(db, "messages"), (s) => { messages = s.docs.map(d => ({id:d.id, ...d.data()})); renderChat(); });
+            onSnapshot(collection(db, "needs"), (s) => { needs = s.docs.map(d => ({id:d.id, ...d.data()})); renderTienda(); });
+            onSnapshot(collection(db, "store"), (s) => { products = s.docs.map(d => ({id:d.id, ...d.data()})); renderTienda(); });
         });
+
+        function updateLandingBackgrounds() {
+            const container = document.getElementById('landingBackgrounds');
+            container.innerHTML = globalBgImages.map((img, i) => `<img src="${img}" class="carousel-img ${i===0?'active':''} w-full h-full object-cover opacity-30">`).join('');
+        }
 
         // --- AUTH ---
         window.handleRegister = async () => {
@@ -311,11 +432,11 @@
         window.handleLogin = () => {
             const u = document.getElementById('loginUser').value.trim();
             const p = document.getElementById('loginPass').value.trim();
-            if(u === 'admin' && p === 'Admin2026*') currentUser = {id:'admin', teamName:'ADMIN', role:'admin'};
+            if(u === 'admin' && p === globalAdminPass) currentUser = {id:'admin', teamName:'ADMINISTRADOR', role:'admin'};
             else {
                 const f = teams.find(t => t.teamName.toLowerCase() === u.toLowerCase() && t.password === p);
                 if(f) currentUser = {...f, role:'user'};
-                else return alert("Error de acceso");
+                else return alert("Error de acceso o contraseña incorrecta");
             }
             document.getElementById('landingPage').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
@@ -332,6 +453,7 @@
             
             closeModal('loginModal');
             render();
+            renderFinanzas();
         };
 
         // --- RESERVAS ---
@@ -372,15 +494,15 @@
 
             if(!f || !h1 || !h2) return alert("Faltan horas o fecha.");
             
-            // VALIDACIÓN DE HORARIOS
+            // VALIDACIÓN DE HORARIOS L-V 5pm-9pm / S-D 7am-6pm
             const d = new Date(f + "T" + h1);
             const day = d.getDay(); // 0 Dom, 1 Lun ... 6 Sab
             const hour = parseInt(h1.split(":")[0]);
 
-            if (day >= 1 && day <= 5) { // Lunes a Viernes
-                if (hour < 17 || hour >= 21) return alert("Horario de Lunes a Viernes es de 5:00 PM a 9:00 PM");
-            } else { // Sabado y Domingo
-                if (hour < 7 || hour >= 18) return alert("Horario de Sábados y Domingos es de 7:00 AM a 6:00 PM");
+            if (day >= 1 && day <= 5) {
+                if (hour < 17 || hour >= 21) return alert("El horario de Lunes a Viernes es exclusivo de 5:00 PM a 9:00 PM");
+            } else {
+                if (hour < 7 || hour >= 18) return alert("El horario de Sábados y Domingos es exclusivo de 7:00 AM a 6:00 PM");
             }
 
             if(!imgP || !imgC) return alert("Faltan fotos de comprobante y cédula");
@@ -391,7 +513,7 @@
                 teamId: currentUser.id, teamName: currentUser.teamName, phone: currentUser.phone || 'S/N',
                 date: f, hourIn: h1, hourOut: h2,
                 amount: updateTotal(), status: 'Pendiente', imgPago: imgP, imgCedula: imgC,
-                implementos: { cones: document.getElementById('rent_conos').value, vests: document.getElementById('rent_chalecos').value, balls: document.getElementById('rent_balones').value },
+                implementos: { conos: document.getElementById('rent_conos').value, chalecos: document.getElementById('rent_chalecos').value, balones: document.getElementById('rent_balones').value },
                 timestamp: new Date().toISOString()
             });
             alert("Reserva enviada exitosamente"); closeModal('modalRes');
@@ -401,8 +523,13 @@
         // --- ADMIN FUNCIONES ---
         window.saveConfig = async () => {
             const s = document.getElementById('config_sinpe').value;
-            await setDoc(doc(db, "config", "general"), { sinpe: s }, { merge: true });
+            const p = document.getElementById('config_adminpass').value;
+            let updateData = { sinpe: s };
+            if(p.trim() !== '') updateData.adminPass = p.trim();
+
+            await setDoc(doc(db, "config", "general"), updateData, { merge: true });
             alert("Configuración actualizada.");
+            document.getElementById('config_adminpass').value = '';
         };
 
         window.openEditRes = (id) => {
@@ -428,15 +555,196 @@
             closeModal('modalEditRes');
         };
 
-        window.delRes = async (id) => { if(confirm("¿Borrar?")) await deleteDoc(doc(db,"reservations",id)); };
+        window.delRes = async (id) => { if(confirm("¿Borrar reserva?")) await deleteDoc(doc(db,"reservations",id)); };
         
         window.sendWA = (phone, code, date, hIn, hOut) => {
             const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-            const dayName = days[new Date(date + "T00:00:00").getDay()];
+            // Evitar desajuste de zona horaria forzando mediodía
+            const dayName = days[new Date(date + "T12:00:00").getDay()];
             
             const msg = `¡Hola! CanchaMaster confirma tu reserva:%0A%0A🗓️ DÍA: ${dayName}, ${date}%0A⏰ HORA: ${hIn} a ${hOut}%0A✅ CÓDIGO: ${code}%0A%0A¡Nos vemos en la cancha! ⚽`;
             window.open(`https://wa.me/${phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
         };
+
+        // --- HISTORIAL EQUIPOS Y CONTRASEÑAS ---
+        window.openTeamHistory = (teamId, teamName) => {
+            const history = reserves.filter(r => r.teamId === teamId).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+            document.getElementById('hist_teamName').innerText = teamName;
+            document.getElementById('hist_count').innerText = `${history.length} Reservas Registradas`;
+            
+            const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            document.getElementById('hist_tableBody').innerHTML = history.map(h => {
+                const dayName = days[new Date(h.date + "T12:00:00").getDay()];
+                return `<tr class="border-b hover:bg-slate-50">
+                    <td class="p-4">${dayName}, ${h.date}</td>
+                    <td class="p-4">${h.hourIn} - ${h.hourOut}</td>
+                    <td class="p-4 text-emerald-600">₡${h.amount.toLocaleString()}</td>
+                    <td class="p-4">${h.status}</td>
+                </tr>`;
+            }).join('');
+            showModal('modalTeamHistory');
+        };
+
+        window.openChangePass = (teamId) => {
+            document.getElementById('change_pass_team_id').value = teamId;
+            document.getElementById('change_pass_new').value = '';
+            showModal('modalChangePass');
+        };
+
+        window.saveTeamPassword = async () => {
+            const id = document.getElementById('change_pass_team_id').value;
+            const newPass = document.getElementById('change_pass_new').value.trim();
+            if(!newPass) return alert("Digite una contraseña válida");
+            await updateDoc(doc(db, "teams", id), { password: newPass });
+            alert("Contraseña de equipo actualizada.");
+            closeModal('modalChangePass');
+        };
+
+        // --- TIENDA Y MANTENIMIENTO ---
+        window.addNeed = async () => {
+            const desc = document.getElementById('need_desc').value;
+            const cost = document.getElementById('need_cost').value;
+            if(!desc || !cost) return;
+            await addDoc(collection(db, "needs"), { desc, cost: parseInt(cost) });
+            document.getElementById('need_desc').value = ''; document.getElementById('need_cost').value = '';
+        };
+
+        window.delNeed = async (id) => { await deleteDoc(doc(db, "needs", id)); };
+
+        window.addProduct = async () => {
+            const desc = document.getElementById('prod_desc').value;
+            const price = document.getElementById('prod_price').value;
+            if(!desc || !price) return;
+            await addDoc(collection(db, "store"), { desc, price: parseInt(price) });
+            document.getElementById('prod_desc').value = ''; document.getElementById('prod_price').value = '';
+        };
+
+        window.delProduct = async (id) => { await deleteDoc(doc(db, "store", id)); };
+
+        function renderTienda() {
+            document.getElementById('needsList').innerHTML = needs.map(n => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border text-xs font-bold">
+                    <span class="text-slate-600">${n.desc}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-amber-600">₡${n.cost.toLocaleString()}</span>
+                        <button onclick="delNeed('${n.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('productsList').innerHTML = products.map(p => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border text-xs font-bold">
+                    <span class="text-slate-600">${p.desc}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-emerald-600">₡${p.price.toLocaleString()}</span>
+                        <button onclick="delProduct('${p.id}')" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- FINANZAS Y PDF ---
+        function renderFinanzas() {
+            if(!currentUser || currentUser.role !== 'admin') return;
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; // YYYY-MM
+            
+            let tCancha = 0;
+            let tImpl = 0;
+
+            reserves.forEach(r => {
+                if(r.status === 'Pagado' && r.date.startsWith(currentMonthStr)) {
+                    let imp = (r.implementos.conos * 3000) + (r.implementos.chalecos * 3000) + (r.implementos.balones * 1000);
+                    tImpl += imp;
+                    tCancha += (r.amount - imp);
+                }
+            });
+
+            document.getElementById('fin_cancha').innerText = `₡${tCancha.toLocaleString()}`;
+            document.getElementById('fin_impl').innerText = `₡${tImpl.toLocaleString()}`;
+            document.getElementById('fin_total').innerText = `₡${(tCancha + tImpl).toLocaleString()}`;
+        }
+
+        window.exportarReservasPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Reporte Mensual de Reservas - CanchaMaster", 14, 15);
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            
+            const tableData = reserves.filter(r => r.date.startsWith(currentMonthStr)).map(r => [
+                r.date, r.teamName, `${r.hourIn}-${r.hourOut}`, r.status, `₡${r.amount}`
+            ]);
+
+            doc.autoTable({
+                head: [['Fecha', 'Equipo', 'Horario', 'Estado', 'Monto']],
+                body: tableData,
+                startY: 20
+            });
+            doc.save(`Reservas_${currentMonthStr}.pdf`);
+        };
+
+        window.exportarIngresosPDF = () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text("Reporte Mensual de Ingresos Financieros", 14, 15);
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            
+            const tableData = reserves.filter(r => r.status === 'Pagado' && r.date.startsWith(currentMonthStr)).map(r => {
+                let imp = (r.implementos.conos * 3000) + (r.implementos.chalecos * 3000) + (r.implementos.balones * 1000);
+                let cancha = r.amount - imp;
+                return [r.date, r.teamName, `₡${cancha}`, `₡${imp}`, `₡${r.amount}`];
+            });
+
+            doc.autoTable({
+                head: [['Fecha', 'Equipo', 'Cancha', 'Implementos', 'Total Pagado']],
+                body: tableData,
+                startY: 20
+            });
+            doc.save(`Ingresos_${currentMonthStr}.pdf`);
+        };
+
+        // --- MULTIMEDIA ---
+        window.uploadBackground = (input) => {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = async () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 1280;
+                        const scale = MAX / img.width;
+                        canvas.width = MAX; canvas.height = img.height * scale;
+                        canvas.getContext('2d').drawImage(img, 0,0, canvas.width, canvas.height);
+                        const b64 = canvas.toDataURL('image/jpeg', 0.5);
+                        
+                        const newImages = [...globalBgImages, b64];
+                        await setDoc(doc(db, "config", "general"), { backgrounds: newImages }, { merge: true });
+                        alert("Fondo agregado correctamente.");
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        window.deleteBackground = async (index) => {
+            if(globalBgImages.length <= 1) return alert("Debe quedar al menos una imagen de fondo.");
+            if(confirm("¿Eliminar este fondo?")) {
+                const newImages = globalBgImages.filter((_, i) => i !== index);
+                await setDoc(doc(db, "config", "general"), { backgrounds: newImages }, { merge: true });
+            }
+        };
+
+        function renderMultimedia() {
+            document.getElementById('bgList').innerHTML = globalBgImages.map((img, i) => `
+                <div class="relative rounded-2xl overflow-hidden border">
+                    <img src="${img}" class="w-full h-24 object-cover">
+                    <button onclick="deleteBackground(${i})" class="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full text-[10px]"><i class="fas fa-times"></i></button>
+                </div>
+            `).join('');
+        }
 
         // --- CHAT SYSTEM ---
         window.openUserChat = () => {
@@ -489,19 +797,25 @@
             setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
         }
 
-        // --- RENDERIZADO GENERAL ---
+        // --- RENDERIZADO PRINCIPAL ---
         function render() {
             if(!currentUser) return;
             if(currentUser.role === 'admin') {
                 const sortedRes = [...reserves].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-                document.getElementById('adminTableBody').innerHTML = sortedRes.map(r => `
+                document.getElementById('adminTableBody').innerHTML = sortedRes.map(r => {
+                    // Filtrar Implementos visualmente
+                    let impls = [];
+                    if(r.implementos.conos > 0) impls.push(`C:${r.implementos.conos}`);
+                    if(r.implementos.chalecos > 0) impls.push(`Ch:${r.implementos.chalecos}`);
+                    if(r.implementos.balones > 0) impls.push(`B:${r.implementos.balones}`);
+                    let implText = impls.length > 0 ? impls.join(' | ') : 'Ninguno';
+
+                    return `
                     <tr class="border-b">
                         <td class="p-6"><span class="code-badge">${r.code}</span><br><span class="text-[10px]">${r.date}</span><br><span class="text-[9px] text-slate-400">${r.hourIn} - ${r.hourOut}</span></td>
                         <td class="p-6 uppercase">${r.teamName}<br><span class="text-emerald-600 font-bold">${r.phone}</span></td>
-                        <td class="p-6 text-[10px] uppercase">
-                            <span class="text-slate-500 font-black">C:</span>${r.implementos.conos} 
-                            <span class="text-slate-500 font-black ml-1">Ch:</span>${r.implementos.chalecos} 
-                            <span class="text-slate-500 font-black ml-1">B:</span>${r.implementos.balones}
+                        <td class="p-6 text-[10px] uppercase font-bold text-slate-500">
+                            ${implText}
                             <div class="text-emerald-600 font-black text-xs mt-1">₡${r.amount.toLocaleString()}</div>
                         </td>
                         <td class="p-6 flex gap-1">
@@ -519,14 +833,18 @@
                             </div>
                         </td>
                     </tr>
-                `).join('');
+                    `
+                }).join('');
 
                 document.getElementById('equiposTableBody').innerHTML = teams.map(t => `
                     <tr class="border-b">
-                        <td class="p-6 font-black uppercase">${t.teamName}</td>
+                        <td class="p-6 font-black uppercase cursor-pointer text-emerald-600 hover:underline" onclick="openTeamHistory('${t.id}', '${t.teamName}')">${t.teamName} <span class="text-[9px] ml-1 text-slate-400">(Ver Historial)</span></td>
                         <td class="p-6">${t.representative}</td>
-                        <td class="p-6 font-bold text-emerald-600">${t.phone}</td>
-                        <td class="p-6"><button onclick="openAdminChat('${t.id}','${t.teamName}')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase"><i class="fas fa-comment"></i> Chat</button></td>
+                        <td class="p-6 font-bold text-slate-600">${t.phone}</td>
+                        <td class="p-6 flex gap-2">
+                            <button onclick="openAdminChat('${t.id}','${t.teamName}')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase"><i class="fas fa-comment"></i> Chat</button>
+                            <button onclick="openChangePass('${t.id}')" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase"><i class="fas fa-key"></i> Clave</button>
+                        </td>
                     </tr>
                 `).join('');
 
@@ -554,13 +872,23 @@
         window.showRegister = () => { closeModal('loginModal'); showModal('modalReg'); };
         
         window.switchTab = (tabId) => {
-            ['adminPanel', 'equiposPanel', 'configPanel'].forEach(id => {
+            ['adminPanel', 'equiposPanel', 'finanzasPanel', 'tiendaPanel', 'multimediaPanel', 'configPanel'].forEach(id => {
                 document.getElementById(id).classList.add('hidden');
                 document.getElementById('tab_' + id).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-transparent text-slate-400";
             });
             document.getElementById(tabId).classList.remove('hidden');
             document.getElementById('tab_' + tabId).className = "px-4 py-2 font-black text-xs uppercase border-b-4 border-emerald-500 text-emerald-600";
         };
+
+        // CAROUSEL LOOP
+        setInterval(() => {
+            const s = document.querySelectorAll('.carousel-img');
+            if(s.length > 1){
+                let cur = [...s].findIndex(x => x.classList.contains('active'));
+                s[cur].classList.remove('active');
+                s[(cur+1)%s.length].classList.add('active');
+            }
+        }, 5000);
     </script>
 </body>
 </html>
